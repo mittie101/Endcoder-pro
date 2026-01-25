@@ -1,0 +1,16 @@
+Support Development ?
+Hey there! Thanks for using Endcoder Pro. I built this tool because I needed a reliable, offline encoding toolkit that actually works the way developers need it to. If you're finding it useful in your daily workflow, that's genuinely awesome and makes the late nights worth it.
+This project is completely free and always will be. No subscriptions, no ads, no tracking—just a solid tool that does what it says. I maintain and improve it in my spare time because I believe good developer tools shouldn't cost an arm and a leg.
+That said, if you're feeling generous and want to buy me a coffee (or help cover the occasional AWS bill when I'm testing stuff), crypto donations are incredibly appreciated. Zero pressure though—seriously. Just knowing people are using and benefiting from this is reward enough.
+
+Bitcoin (BTC): bc1qpt4vhvj0na5g60xqka2xv72l9p70shvttl638l Mainnet network only
+
+Dogecoin [DOGE]: DETt24UWu5KkmubvYNj1i2Vskn9oRGmcNL       Mainnet network only
+
+Litecoin (LTC): ltc1qtw3zf7q75pq9cyc0e7u68upn7wrqjqkus2my47  Mainnet network only
+
+Every little bit helps keep the project alive and motivates me to add more features. Recently added QR codes and JWT tools based on user feedback, and there's plenty more in the pipeline.
+If crypto isn't your thing, starring the repo on GitHub or sharing it with a colleague who might find it useful is equally appreciated. Word of mouth from actual users means more than any marketing ever could.
+Thanks for being here, and happy encoding! ??
+— Antony
+

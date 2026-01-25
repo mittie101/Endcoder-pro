@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Endcoder Pro v3.0</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/editor/editor.main.css">
+</head>
+<body>
+    <div id="loader" class="loader" style="display: none;">
+        <div class="loader-spinner"></div>
+        <p>Processing...</p>
+    </div>
+
+    <div id="notificationContainer"></div>
+    
+    <div id="qrCodeContainer" class="qr-overlay" style="display: none;">
+        <div class="qr-box">
+            <h3>QR Code Generated</h3>
+            <canvas id="qrCanvas"></canvas>
+            <div class="qr-actions">
+                <button id="downloadQrBtn" class="btn btn-primary">Download PNG</button>
+                <button id="closeQrBtn" class="btn btn-secondary">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <header class="app-header">
+        <div class="header-left">
+            <img src="logo.png" alt="Endcoder Pro" style="width: 40px; height: 40px; margin-right: 10px;">
+            <h1>Endcoder Pro</h1>
+            <span class="version">v3.0</span>
+        </div>
+        <div class="header-right">
+            <button id="themeToggle" class="theme-toggle" title="Toggle Theme">🌓</button>
+        </div>
+    </header>
+
+    <nav class="tabs">
+        <button class="tab active" data-tab="encoder">Encoder/Decoder</button>
+        <button class="tab" data-tab="jwt">JWT Tools</button>
+        <button class="tab" data-tab="password">Password Hash</button>
+        <button class="tab" data-tab="diff">Diff Comparator</button>
+        <button class="tab" data-tab="image">Image Optimizer</button>
+        <button class="tab" data-tab="server">API Server</button>
+        <button class="tab" data-tab="history">History</button>
+    </nav>
+
+    <div id="encoder-tab" class="tab-content active">
+        <div class="controls">
+            <div class="control-group">
+                <label>Encoding:</label>
+                <select id="encodingSelect">
+                    <option value="base64">Base64</option>
+                    <option value="base64url">Base64 URL</option>
+                    <option value="base32">Base32</option>
+                    <option value="base32hex">Base32 Hex</option>
+                    <option value="hex">Hexadecimal</option>
+                    <option value="binary">Binary</option>
+                    <option value="ascii85">ASCII85</option>
+                    <option value="base58">Base58</option>
+                    <option value="uuencode">UUEncode</option>
+                    <option value="quoted-printable">Quoted-Printable</option>
+                    <option value="percent">Percent Encoding</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <button id="encodeBtn" class="btn btn-primary" title="Ctrl+E">Encode</button>
+                <button id="decodeBtn" class="btn btn-primary" title="Ctrl+D">Decode</button>
+            </div>
+            <div class="control-group">
+                <button id="loadFile" class="btn" title="Ctrl+O">Load File</button>
+                <button id="saveOutput" class="btn" title="Ctrl+S">Save Output</button>
+            </div>
+        </div>
+
+        <div class="editor-container">
+            <div class="editor-panel">
+                <div class="panel-header">
+                    <h3>Input</h3>
+                    <div class="panel-actions">
+                        <button id="sanitizeBtn" class="btn-small" title="Fix formatting">Sanitize</button>
+                        <button id="copyInput" class="btn-small">Copy</button>
+                        <button id="clearInput" class="btn-small">Clear</button>
+                    </div>
+                </div>
+                <div class="editor-wrapper">
+                    <div id="monacoInput" class="editor-host"></div>
+                    <div class="empty-state" id="inputEmptyState">
+                        <div class="empty-state-icon">📝</div>
+                        <div class="empty-state-text">Type, paste, or drag & drop a file</div>
+                    </div>
+                </div>
+                <div id="inputStats" class="stats-bar"></div>
+            </div>
+
+            <div class="resizer"></div>
+
+            <div class="editor-panel">
+                <div class="panel-header">
+                    <h3>Output</h3>
+                    <div class="panel-actions">
+                        <button id="qrCodeBtn" class="btn-small" title="Generate QR Code">QR Code</button>
+                        <button id="copyOutput" class="btn-small">Copy</button>
+                        <button id="clearOutput" class="btn-small">Clear</button>
+                        <div class="dropdown">
+                            <button class="btn-small">Snippets ▾</button>
+                            <div class="dropdown-content" id="snippetMenu">
+                                <a data-type="img">HTML &lt;img&gt;</a>
+                                <a data-type="css">CSS Background</a>
+                                <a data-type="datauri">Data URI</a>
+                                <a data-type="json">JSON Object</a>
+                            </div>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn-small">Export ▾</button>
+                            <div class="dropdown-content">
+                                <a id="exportCSharp">C# Byte Array</a>
+                                <a id="exportJava">Java Byte Array</a>
+                                <a id="exportPython">Python Bytes</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="editor-wrapper">
+                    <div id="monacoOutput" class="editor-host"></div>
+                    <div class="empty-state" id="outputEmptyState">
+                        <div class="empty-state-icon">✨</div>
+                        <div class="empty-state-text">Output will appear here</div>
+                    </div>
+                </div>
+                <div id="outputStats" class="stats-bar"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="jwt-tab" class="tab-content">
+        <div class="jwt-container">
+            <div class="jwt-section">
+                <h2>Verify JWT</h2>
+                <div class="form-group">
+                    <label>Token:</label>
+                    <textarea id="jwtTokenInput" rows="4" placeholder="Paste JWT token..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Secret:</label>
+                    <input type="text" id="jwtSecretInput" placeholder="Secret key">
+                </div>
+                <div class="form-group">
+                    <select id="jwtAlgorithm"><option value="HS256">HS256</option><option value="HS512">HS512</option></select>
+                </div>
+                <button id="verifyJWT" class="btn btn-primary">Verify</button>
+                <div id="jwtVerifyResult" class="jwt-result-container"></div>
+            </div>
+            <div class="jwt-section">
+                <h2>Sign JWT</h2>
+                <div class="form-group">
+                    <label>Payload:</label>
+                    <div id="monacoJWTPayload" style="height: 200px; border: 1px solid #444;"></div>
+                </div>
+                <div class="form-group">
+                    <label>Secret:</label>
+                    <input type="text" id="jwtSignSecret" placeholder="Secret key">
+                </div>
+                <button id="signJWT" class="btn btn-primary">Sign Token</button>
+                <div id="jwtSignOutput" class="jwt-result-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="password-tab" class="tab-content">
+        <div class="jwt-container">
+            <div class="jwt-section">
+                <h2>Hash Password</h2>
+                <div class="form-group">
+                    <label>Password:</label>
+                    <input type="password" id="passwordInput">
+                </div>
+                <div class="form-group">
+                    <select id="passwordAlgorithm">
+                        <option value="pbkdf2">PBKDF2 (Standard)</option>
+                        <option value="bcrypt">bcrypt (Secure)</option>
+                        <option value="argon2">Argon2 (Best)</option>
+                    </select>
+                </div>
+                <div id="bcryptRoundsGroup" class="form-group" style="display:none;"><label>Rounds:</label><input type="number" id="bcryptRounds" value="10"></div>
+                <div id="argon2OptionsGroup" class="form-group" style="display:none;"><label>Memory (KB):</label><input type="number" id="argon2Memory" value="65536"></div>
+                <div id="argon2TimeGroup" class="form-group" style="display:none;"><label>Iterations:</label><input type="number" id="argon2Time" value="3"></div>
+                <div id="pbkdf2IterationsGroup" class="form-group"><label>Iterations:</label><input type="number" id="pbkdf2Iterations" value="100000"></div>
+                
+                <button id="hashPasswordBtn" class="btn btn-primary">Hash Password</button>
+                <div id="passwordHashResult" class="jwt-result-container"></div>
+            </div>
+            <div class="jwt-section">
+                <h2>Verify Password</h2>
+                <div class="form-group"><label>Password:</label><input type="password" id="verifyPasswordInput"></div>
+                <div class="form-group"><label>Hash:</label><textarea id="verifyHashInput" rows="3"></textarea></div>
+                <button id="verifyPasswordBtn" class="btn btn-primary">Verify</button>
+                <div id="passwordVerifyResult" class="jwt-result-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="diff-tab" class="tab-content">
+        <div class="controls">
+            <button id="compareDiff" class="btn btn-primary">Compare</button>
+            <button id="swapDiff" class="btn">Swap</button>
+        </div>
+        <div class="diff-editors">
+            <div class="editor-panel">
+                <div class="panel-header"><h3>Left</h3></div>
+                <div id="monacoDiffLeft" class="editor-host"></div>
+            </div>
+            <div class="editor-panel">
+                <div class="panel-header"><h3>Right</h3></div>
+                <div id="monacoDiffRight" class="editor-host"></div>
+            </div>
+        </div>
+        <div id="diffResult" class="diff-result-container"></div>
+    </div>
+
+    <div id="image-tab" class="tab-content">
+        <div class="image-optimizer">
+            <h2>Image Optimization</h2>
+            <div class="form-grid">
+                <div class="form-group"><label>Width:</label><input type="number" id="imgWidth" placeholder="Optional"></div>
+                <div class="form-group"><label>Height:</label><input type="number" id="imgHeight" placeholder="Optional"></div>
+                <div class="form-group"><label>Format:</label><select id="imgFormat"><option value="jpeg">JPEG</option><option value="png">PNG</option></select></div>
+                <div class="form-group"><label>Quality:</label><input type="number" id="imgQuality" value="80"></div>
+            </div>
+            <button id="optimizeImageBtn" class="btn btn-primary">Load & Optimize</button>
+        </div>
+    </div>
+
+    <div id="server-tab" class="tab-content">
+        <div class="server-container">
+            <h2>Local API Server</h2>
+            <div class="server-controls">
+                <div class="form-group"><label>Port:</label><input type="number" id="serverPort" value="3000"></div>
+                <button id="startServer" class="btn btn-primary">Start</button>
+                <button id="stopServer" class="btn btn-danger" disabled>Stop</button>
+                <div id="serverStatus" class="server-status stopped">Not running</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="history-tab" class="tab-content">
+        <div class="history-container">
+            <div class="history-header">
+                <h2>History</h2>
+                <div class="history-actions">
+                    <button id="exportHistory" class="btn">Export</button>
+                    <button id="clearHistory" class="btn btn-danger">Clear</button>
+                </div>
+            </div>
+            <div id="historyList" class="history-list"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
+    
+    <script>
+        // Temporarily disable AMD for QRious
+        var _define = window.define;
+        var _exports = window.exports;
+        window.define = undefined;
+        window.exports = undefined;
+    </script>
+    <script src="qrious.min.js"></script>
+    <script>
+        // Restore AMD for Monaco
+        window.define = _define;
+        window.exports = _exports;
+        console.log('QRious available:', typeof window.QRious);
+    </script>
+    
+    <script>
+        require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' }});
+        require(['vs/editor/editor.main'], function() { });
+    </script>
+    
+    <script src="encodings.js"></script>
+    <script src="converter.js"></script>
+    <script src="ui-handler.js"></script>
+    <script src="history-manager.js"></script>
+    <script src="jwt-handler.js"></script>
+    <script src="diff-tool.js"></script>
+    <script src="advanced-features.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
