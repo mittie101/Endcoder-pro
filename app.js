@@ -484,7 +484,13 @@ class App {
         }
         
         const editor = this.ui.getMonacoEditor('input');
-        const decoded = atob(result.buffer);
+        // Decode base64 properly to handle multi-byte UTF-8 characters
+        const binaryString = atob(result.buffer);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const decoded = new TextDecoder('utf-8').decode(bytes);
         editor.setValue(decoded);
         this.ui.showSuccess(`Loaded: ${result.name}`);
       } else {
@@ -600,12 +606,18 @@ class App {
           <div style="margin-top: 10px; padding: 15px; background: rgba(0, 217, 255, 0.05); border: 1px solid rgba(0, 217, 255, 0.2); border-radius: 6px;">
             <strong style="color: #00d9ff;">API Key:</strong>
             <div style="display: flex; gap: 10px; align-items: center; margin-top: 8px;">
-              <code style="flex: 1; background: #0f1419; padding: 10px; border-radius: 4px; font-family: 'Consolas', monospace; font-size: 12px; overflow-x: auto;">${apiKey}</code>
-              <button onclick="navigator.clipboard.writeText('${apiKey}'); app.ui.showSuccess('API key copied')" class="btn-small">Copy</button>
+              <code id="apiKeyDisplay" style="flex: 1; background: #0f1419; padding: 10px; border-radius: 4px; font-family: 'Consolas', monospace; font-size: 12px; overflow-x: auto;"></code>
+              <button id="copyApiKeyBtn" class="btn-small">Copy</button>
             </div>
             <small style="color: #7f8c8d; display: block; margin-top: 8px;">Include this in the "X-API-Key" header</small>
           </div>
         `;
+        // Set text content safely to avoid XSS
+        document.getElementById('apiKeyDisplay').textContent = apiKey;
+        document.getElementById('copyApiKeyBtn').addEventListener('click', () => {
+          navigator.clipboard.writeText(apiKey);
+          this.ui.showSuccess('API key copied');
+        });
       } else {
         statusEl.textContent = running ? `Running on port ${port}` : 'Not running';
         statusEl.className = `server-status ${running ? 'running' : 'stopped'}`;
@@ -760,9 +772,15 @@ function initPasswordHashHandlers() {
             <div class="success">
               <h3>Password Hashed</h3>
               <p><strong>Algorithm:</strong> ${result.algorithm}</p>
-              <textarea readonly rows="3" style="width:100%; background:#1e1e1e; color:#fff;">${result.hash}</textarea>
-              <button class="btn-small" onclick="navigator.clipboard.writeText('${result.hash}'); window.ui.showSuccess('Copied');">Copy</button>
+              <textarea id="hashResultText" readonly rows="3" style="width:100%; background:#1e1e1e; color:#fff;"></textarea>
+              <button id="copyHashBtn" class="btn-small">Copy</button>
             </div>`;
+          // Set hash value safely to avoid XSS with special characters
+          document.getElementById('hashResultText').value = result.hash;
+          document.getElementById('copyHashBtn').addEventListener('click', () => {
+            navigator.clipboard.writeText(result.hash);
+            window.ui.showSuccess('Copied');
+          });
         } else {
           resultDiv.innerHTML = `<div class="error">Error: ${result.error}</div>`;
         }

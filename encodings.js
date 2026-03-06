@@ -262,19 +262,23 @@ function decodeUUEncode(input) {
         const len = line.charCodeAt(0) - 32;
         if (len <= 0) continue;
         
+        let lineBytes = [];
         for (let i = 1; i < line.length; i += 4) {
             const c1 = (line.charCodeAt(i) - 32) & 63;
             const c2 = i + 1 < line.length ? (line.charCodeAt(i + 1) - 32) & 63 : 0;
             const c3 = i + 2 < line.length ? (line.charCodeAt(i + 2) - 32) & 63 : 0;
             const c4 = i + 3 < line.length ? (line.charCodeAt(i + 3) - 32) & 63 : 0;
             
-            output.push((c1 << 2) | (c2 >> 4));
-            if (output.length < len) output.push(((c2 << 4) | (c3 >> 2)) & 255);
-            if (output.length < len) output.push(((c3 << 6) | c4) & 255);
+            lineBytes.push((c1 << 2) | (c2 >> 4));
+            lineBytes.push(((c2 << 4) | (c3 >> 2)) & 255);
+            lineBytes.push(((c3 << 6) | c4) & 255);
         }
+        
+        // Only take the number of bytes specified by the line length prefix
+        output.push(...lineBytes.slice(0, len));
     }
     
-    return new TextDecoder().decode(new Uint8Array(output.slice(0, len)));
+    return new TextDecoder().decode(new Uint8Array(output));
 }
 
 // ============================================================================
