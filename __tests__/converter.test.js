@@ -71,8 +71,6 @@ describe('Converter', () => {
     ];
 
     for (const format of formats) {
-      // Skip ascii85 - known padding bug with non-4-byte-aligned inputs
-      if (format === 'ascii85') continue;
       test(`round-trip: ${format}`, () => {
         const input = 'Hello World 123';
         const encoded = converter.encode(input, format);
@@ -83,14 +81,26 @@ describe('Converter', () => {
   });
 
   describe('detectEncoding', () => {
-    test('detects hex-like strings as base64 (base64 pattern matches first)', () => {
-      // The detection order means base64 regex matches hex strings too
-      expect(converter.detectEncoding('4142434445')).toBe('base64');
+    test('detects hex strings correctly', () => {
+      // Improved heuristics: hex with a-f chars scores higher than base64
+      expect(converter.detectEncoding('4142434445')).toBe('hex');
     });
 
-    test('detects binary-like strings as base64 (base64 pattern matches first)', () => {
-      // Binary strings (0 and 1 only) also match base64 pattern
-      expect(converter.detectEncoding('01010101')).toBe('base64');
+    test('detects binary strings correctly', () => {
+      // Improved heuristics: 8-bit aligned binary detected as binary
+      expect(converter.detectEncoding('01010101')).toBe('binary');
+    });
+
+    test('detects base64 with padding', () => {
+      expect(converter.detectEncoding('SGVsbG8=')).toBe('base64');
+    });
+
+    test('detects ascii85 wrapped in delimiters', () => {
+      expect(converter.detectEncoding('<~87cURD]j~>')).toBe('ascii85');
+    });
+
+    test('detects morse code', () => {
+      expect(converter.detectEncoding('.... . .-.. .-.. ---')).toBe('morse');
     });
 
     test('detects percent encoding', () => {

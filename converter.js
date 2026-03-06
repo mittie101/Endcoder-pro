@@ -78,22 +78,75 @@ class Converter {
   }
 
   detectEncoding(input) {
-    const patterns = {
-      base64: /^[A-Za-z0-9+/]+=*$/,
-      base64url: /^[A-Za-z0-9_-]+$/,
-      base32: /^[A-Z2-7]+=*$/,
-      hex: /^[0-9a-fA-F]+$/,
-      binary: /^[01]+$/,
-      percent: /%[0-9A-Fa-f]{2}/
-    };
+    input = input.trim();
+    if (!input) return 'unknown';
 
-    for (const [encoding, pattern] of Object.entries(patterns)) {
-      if (pattern.test(input.trim())) {
-        return encoding;
+    const scores = {};
+
+    // Binary: only 0s and 1s, typically space-separated bytes
+    if (/^[01\s]+$/.test(input)) {
+      const cleaned = input.replace(/\s/g, '');
+      if (cleaned.length % 8 === 0 && cleaned.length > 0) {
+        scores.binary = 95;
+      } else if (/^[01]+$/.test(cleaned)) {
+        scores.binary = 70;
       }
     }
 
-    return 'unknown';
+    // Hex: only hex chars, even length
+    if (/^[0-9a-fA-F\s]+$/.test(input)) {
+      const cleaned = input.replace(/\s/g, '');
+      if (cleaned.length % 2 === 0 && cleaned.length > 0) {
+        // Higher score if it contains a-f (not just digits)
+        scores.hex = /[a-fA-F]/.test(cleaned) ? 85 : 60;
+      }
+    }
+
+    // Base32: uppercase A-Z and 2-7, with optional = padding
+    if (/^[A-Z2-7]+=*$/.test(input)) {
+      scores.base32 = 70;
+      if (input.endsWith('=')) scores.base32 += 15;
+    }
+
+    // Base64: standard charset with optional = padding
+    if (/^[A-Za-z0-9+/]+=*$/.test(input)) {
+      scores.base64 = 60;
+      if (input.endsWith('=')) scores.base64 += 20;
+      if (/[a-z]/.test(input) && /[A-Z]/.test(input)) scores.base64 += 10;
+      if (/[+/]/.test(input)) scores.base64 += 10;
+    }
+
+    // Base64url: URL-safe variant with - and _
+    if (/^[A-Za-z0-9_-]+$/.test(input)) {
+      scores.base64url = 50;
+      if (/[-_]/.test(input)) scores.base64url += 30;
+    }
+
+    // Percent encoding: has %XX sequences
+    if (/%[0-9A-Fa-f]{2}/.test(input)) {
+      const matches = input.match(/%[0-9A-Fa-f]{2}/g) || [];
+      scores.percent = 60 + Math.min(matches.length * 5, 35);
+    }
+
+    // Ascii85: wrapped in <~ ~>
+    if (input.startsWith('<~') && input.endsWith('~>')) {
+      scores.ascii85 = 98;
+    }
+
+    // UUEncode: starts with "begin"
+    if (input.startsWith('begin ')) {
+      scores.uuencode = 98;
+    }
+
+    // Morse: dots, dashes, spaces, slashes
+    if (/^[.\-/ ]+$/.test(input) && /[.\-]/.test(input)) {
+      scores.morse = 90;
+    }
+
+    if (Object.keys(scores).length === 0) return 'unknown';
+
+    // Return the encoding with highest score
+    return Object.entries(scores).sort((a, b) => b[1] - a[1])[0][0];
   }
 
   getEncodingInfo(encoding) {

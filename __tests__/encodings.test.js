@@ -157,14 +157,13 @@ describe('Ascii85', () => {
     expect(Encodings.decodeAscii85(Encodings.encodeAscii85('ABCDEFGH'))).toBe('ABCDEFGH');
   });
 
-  test('round-trip with non-aligned lengths has known padding bug', () => {
-    // NOTE: The Ascii85 encoder/decoder has a known issue with inputs
-    // not aligned to 4 bytes. The encoder's padding logic produces
-    // incorrect output for 1, 2, 3 byte remainders.
-    // This test documents the existing behavior.
-    const encoded = Encodings.encodeAscii85('A');
-    expect(encoded.startsWith('<~')).toBe(true);
-    expect(encoded.endsWith('~>')).toBe(true);
+  test('round-trip with non-aligned lengths (padding bug fixed)', () => {
+    // Ascii85 padding bug has been fixed - all lengths now round-trip correctly
+    expect(Encodings.decodeAscii85(Encodings.encodeAscii85('A'))).toBe('A');
+    expect(Encodings.decodeAscii85(Encodings.encodeAscii85('AB'))).toBe('AB');
+    expect(Encodings.decodeAscii85(Encodings.encodeAscii85('ABC'))).toBe('ABC');
+    expect(Encodings.decodeAscii85(Encodings.encodeAscii85('Hello'))).toBe('Hello');
+    expect(Encodings.decodeAscii85(Encodings.encodeAscii85('Hello, World!'))).toBe('Hello, World!');
   });
 });
 
@@ -351,5 +350,56 @@ describe('Morse Code', () => {
   test('encode with numbers', () => {
     const encoded = Encodings.encodeMorse('A1');
     expect(encoded).toBe('.- .----');
+  });
+});
+
+// ============================================================================
+// Input Validation
+// ============================================================================
+describe('Input Validation', () => {
+  test('encodeBase64 rejects non-string input', () => {
+    expect(() => Encodings.encodeBase64(123)).toThrow('Input must be a string');
+    expect(() => Encodings.encodeBase64(null)).toThrow('Input must be a string');
+    expect(() => Encodings.encodeBase64(undefined)).toThrow('Input must be a string');
+  });
+
+  test('encodeHex rejects non-string input', () => {
+    expect(() => Encodings.encodeHex(42)).toThrow('Input must be a string');
+  });
+
+  test('encodeBinary rejects non-string input', () => {
+    expect(() => Encodings.encodeBinary({})).toThrow('Input must be a string');
+  });
+
+  test('decodeBinary rejects invalid characters', () => {
+    expect(() => Encodings.decodeBinary('0120')).toThrow('Invalid binary string');
+  });
+
+  test('decodeBinary accepts valid binary', () => {
+    expect(() => Encodings.decodeBinary('01000001')).not.toThrow();
+  });
+
+  test('encodeMorse rejects non-string input', () => {
+    expect(() => Encodings.encodeMorse(42)).toThrow('Input must be a string');
+  });
+
+  test('encodeBase32 rejects non-string input', () => {
+    expect(() => Encodings.encodeBase32([])).toThrow('Input must be a string');
+  });
+
+  test('encodeBase58 rejects non-string input', () => {
+    expect(() => Encodings.encodeBase58(false)).toThrow('Input must be a string');
+  });
+
+  test('encodeUUEncode rejects non-string input', () => {
+    expect(() => Encodings.encodeUUEncode(99)).toThrow('Input must be a string');
+  });
+
+  test('encodeQuotedPrintable rejects non-string input', () => {
+    expect(() => Encodings.encodeQuotedPrintable(null)).toThrow('Input must be a string');
+  });
+
+  test('decodeQuotedPrintable rejects non-string input', () => {
+    expect(() => Encodings.decodeQuotedPrintable(42)).toThrow('Input must be a string');
   });
 });

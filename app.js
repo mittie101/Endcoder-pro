@@ -44,6 +44,9 @@ class App {
     // Setup menu handlers
     this.setupMenuHandlers();
     
+    // Setup auto-detect on paste
+    this.setupPasteDetection();
+
     // Setup drag and drop
     this.setupDragAndDrop();
     
@@ -174,6 +177,15 @@ class App {
     document.getElementById('loadFile')?.addEventListener('click', () => this.loadFile());
     document.getElementById('saveOutput')?.addEventListener('click', () => this.saveOutput());
     
+    // Swap button
+    document.getElementById('swapBtn')?.addEventListener('click', () => this.swapInputOutput());
+
+    // Pipeline controls
+    document.getElementById('togglePipeline')?.addEventListener('click', () => this.togglePipeline());
+    document.getElementById('addPipelineStep')?.addEventListener('click', () => this.addPipelineStep());
+    document.getElementById('runPipeline')?.addEventListener('click', () => this.runPipeline());
+    document.getElementById('clearPipeline')?.addEventListener('click', () => this.clearPipeline());
+
     // Image optimization
     document.getElementById('optimizeImageBtn')?.addEventListener('click', () => this.optimizeImage());
     
@@ -195,6 +207,157 @@ class App {
     
     // Dropdown toggle functionality
     this.setupDropdownHandlers();
+
+    // Keyboard shortcuts
+    this.setupKeyboardShortcuts();
+  }
+
+  setupKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+      // Ctrl+E - Encode
+      if (e.ctrlKey && !e.shiftKey && e.key === 'e') {
+        e.preventDefault();
+        this.encode();
+      }
+      // Ctrl+D - Decode
+      if (e.ctrlKey && !e.shiftKey && e.key === 'd') {
+        e.preventDefault();
+        this.decode();
+      }
+      // Ctrl+Shift+C - Copy output
+      if (e.ctrlKey && e.shiftKey && e.key === 'C') {
+        e.preventDefault();
+        this.copyOutput();
+      }
+      // Ctrl+O - Open/load file
+      if (e.ctrlKey && !e.shiftKey && e.key === 'o') {
+        e.preventDefault();
+        this.loadFile();
+      }
+      // Ctrl+S - Save output
+      if (e.ctrlKey && !e.shiftKey && e.key === 's') {
+        e.preventDefault();
+        this.saveOutput();
+      }
+      // Ctrl+Shift+X - Swap input/output
+      if (e.ctrlKey && e.shiftKey && e.key === 'X') {
+        e.preventDefault();
+        this.swapInputOutput();
+      }
+    });
+  }
+
+  swapInputOutput() {
+    const inputEditor = this.ui.getMonacoEditor('input');
+    const outputEditor = this.ui.getMonacoEditor('output');
+    if (inputEditor && outputEditor) {
+      const inputVal = inputEditor.getValue();
+      const outputVal = outputEditor.getValue();
+      inputEditor.setValue(outputVal);
+      outputEditor.setValue(inputVal);
+      this.ui.showNotification('Input and output swapped', 'success');
+    }
+  }
+
+  togglePipeline() {
+    const container = document.getElementById('pipelineContainer');
+    if (container) {
+      container.style.display = container.style.display === 'none' ? 'flex' : 'none';
+    }
+  }
+
+  addPipelineStep() {
+    const encoding = document.getElementById('pipelineEncoding');
+    const action = document.getElementById('pipelineAction');
+    if (!encoding || !action) return;
+
+    if (!this.pipelineSteps) this.pipelineSteps = [];
+    this.pipelineSteps.push({ encoding: encoding.value, action: action.value });
+    this.renderPipelineSteps();
+  }
+
+  renderPipelineSteps() {
+    const container = document.getElementById('pipelineSteps');
+    if (!container) return;
+    container.innerHTML = '';
+    (this.pipelineSteps || []).forEach((step, i) => {
+      const tag = document.createElement('span');
+      tag.style.cssText = 'background:#2a3f5f;color:#00d9ff;padding:4px 8px;border-radius:4px;font-size:12px;display:inline-flex;align-items:center;gap:4px;';
+      tag.textContent = (i + 1) + '. ' + step.action + '(' + step.encoding + ')';
+      const removeBtn = document.createElement('button');
+      removeBtn.textContent = 'x';
+      removeBtn.style.cssText = 'background:none;border:none;color:#e74c3c;cursor:pointer;font-size:12px;padding:0 2px;';
+      removeBtn.addEventListener('click', () => {
+        this.pipelineSteps.splice(i, 1);
+        this.renderPipelineSteps();
+      });
+      tag.appendChild(removeBtn);
+      container.appendChild(tag);
+    });
+  }
+
+  runPipeline() {
+    if (!this.pipelineSteps || this.pipelineSteps.length === 0) {
+      this.ui.showNotification('Add at least one pipeline step first', 'error');
+      return;
+    }
+    const inputEditor = this.ui.getMonacoEditor('input');
+    const outputEditor = this.ui.getMonacoEditor('output');
+    if (!inputEditor || !outputEditor) return;
+
+    let value = inputEditor.getValue();
+    try {
+      for (const step of this.pipelineSteps) {
+        if (step.action === 'encode') {
+          value = this.converter.encode(value, step.encoding);
+        } else {
+          value = this.converter.decode(value, step.encoding);
+        }
+      }
+      outputEditor.setValue(value);
+      this.ui.showNotification('Pipeline executed: ' + this.pipelineSteps.length + ' steps', 'success');
+    } catch (error) {
+      this.ui.showNotification('Pipeline error: ' + error.message, 'error');
+    }
+  }
+
+  clearPipeline() {
+    this.pipelineSteps = [];
+    this.renderPipelineSteps();
+  }
+
+  setupPasteDetection() {
+    const inputEditor = this.ui.getMonacoEditor('input');
+    if (inputEditor) {
+      // Listen for content changes that might be paste events
+      let lastLength = 0;
+      inputEditor.onDidChangeModelContent((e) => {
+        const currentValue = inputEditor.getValue();
+        const lengthDiff = currentValue.length - lastLength;
+        lastLength = currentValue.length;
+
+        // Detect paste: large content change (more than 5 chars added at once)
+        if (lengthDiff > 5 && currentValue.length > 0) {
+          const detected = this.converter.detectEncoding(currentValue);
+          if (detected !== 'unknown') {
+            this.ui.showNotification(
+              'Detected encoding: ' + detected.toUpperCase() + ' — Press Ctrl+D to decode',
+              'success'
+            );
+            // Auto-select the detected encoding in the dropdown
+            const encodingSelect = document.getElementById('encodingType');
+            if (encodingSelect) {
+              const option = Array.from(encodingSelect.options).find(
+                (opt) => opt.value.toLowerCase() === detected.toLowerCase()
+              );
+              if (option) {
+                encodingSelect.value = option.value;
+              }
+            }
+          }
+        }
+      });
+    }
   }
 
   setupDropdownHandlers() {

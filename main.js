@@ -2,13 +2,23 @@ const { app, BrowserWindow, ipcMain, dialog, shell, Menu } = require('electron')
 const path = require('path');
 const fs = require('fs').promises;
 
-// Optional dependencies with fallbacks
-let Jimp;
+// Auto-update support
+let autoUpdater;
 try {
-  Jimp = require('jimp');
-  console.log('Jimp loaded successfully for image processing');
+  autoUpdater = require('electron-updater').autoUpdater;
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = true;
 } catch (e) {
-  console.warn('Jimp not available - image optimization disabled');
+  console.warn('electron-updater not available - auto-update disabled');
+}
+
+// Optional dependencies with fallbacks
+let sharp;
+try {
+  sharp = require('sharp');
+  console.log('sharp loaded successfully for image processing');
+} catch (e) {
+  console.warn('sharp not available - image optimization disabled');
 }
 
 let jwt;
@@ -156,7 +166,43 @@ function createMenu() {
   Menu.setApplicationMenu(menu);
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  createWindow();
+
+  // Check for updates after window is ready
+  if (autoUpdater) {
+    autoUpdater.on('update-available', (info) => {
+      dialog.showMessageBox(mainWindow, {
+        type: 'info',
+        title: 'Update Available',
+        message: `Version ${info.version} is available. Would you like to download it?`,
+        buttons: ['Download', 'Later']
+      }).then((result) => {
+        if (result.response === 0) {
+          autoUpdater.downloadUpdate();
+        }
+      });
+    });
+
+    autoUpdater.on('update-downloaded', () => {
+      dialog.showMessageBox(mainWindow, {
+        type: 'info',
+        title: 'Update Ready',
+        message: 'Update downloaded. It will be installed when you restart the app.',
+        buttons: ['Restart Now', 'Later']
+      }).then((result) => {
+        if (result.response === 0) {
+          autoUpdater.quitAndInstall();
+        }
+      });
+    });
+
+    // Check for updates silently
+    autoUpdater.checkForUpdates().catch(() => {
+      // Silently ignore update check failures
+    });
+  }
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
@@ -228,12 +274,12 @@ ipcMain.handle('save-file', async (event, data, defaultName = 'output.txt') => {
   return { success: false, error: 'Save cancelled' };
 });
 
-// Image optimization with Jimp
+// Image optimization with sharp (replaced Jimp for smaller bundle + WebP/AVIF support)
 ipcMain.handle('optimize-image', async (event, filePath, options) => {
-  if (!Jimp) {
+  if (!sharp) {
     return {
       success: false,
-      error: 'Jimp library not available. Install with: npm install jimp'
+      error: 'sharp library not available. Install with: npm install sharp'
     };
   }
   
@@ -244,57 +290,45 @@ ipcMain.handle('optimize-image', async (event, filePath, options) => {
     const stats = await fs.stat(filePath);
     const originalSize = stats.size;
     
-    // Read image with Jimp
-    const image = await Jimp.read(filePath);
+    // Read image with sharp
+    let image = sharp(filePath);
     
     // Resize if dimensions provided
     if (width || height) {
-      if (width && height) {
-        image.resize(width, height);
-      } else if (width) {
-        image.resize(width, Jimp.AUTO);
-      } else if (height) {
-        image.resize(Jimp.AUTO, height);
-      }
+      image = image.resize(width || null, height || null, { fit: 'inside' });
     }
     
-    // Set quality
-    if (quality) {
-      image.quality(quality);
-    }
+    // Set output format and quality
+    let outputFormat = (format || 'jpeg').toLowerCase();
+    const qualityVal = quality || 80;
     
-    // Get buffer based on format
-    let buffer;
-    let outputFormat = format || 'jpeg';
-    
-    switch(outputFormat.toLowerCase()) {
+    switch(outputFormat) {
       case 'png':
-        buffer = await image.getBufferAsync(Jimp.MIME_PNG);
+        image = image.png({ quality: qualityVal });
+        break;
+      case 'webp':
+        image = image.webp({ quality: qualityVal });
+        break;
+      case 'avif':
+        image = image.avif({ quality: qualityVal });
         break;
       case 'jpeg':
       case 'jpg':
-        buffer = await image.getBufferAsync(Jimp.MIME_JPEG);
-        break;
-      case 'bmp':
-        buffer = await image.getBufferAsync(Jimp.MIME_BMP);
-        break;
-      case 'webp':
-      case 'avif':
-        // Jimp doesn't support WebP/AVIF, use JPEG instead
-        buffer = await image.getBufferAsync(Jimp.MIME_JPEG);
-        outputFormat = 'jpeg';
-        break;
       default:
-        buffer = await image.getBufferAsync(Jimp.MIME_JPEG);
         outputFormat = 'jpeg';
+        image = image.jpeg({ quality: qualityVal });
+        break;
     }
+    
+    const buffer = await image.toBuffer();
+    const metadata = await sharp(buffer).metadata();
     
     return {
       success: true,
       buffer: buffer.toString('base64'),
       format: outputFormat,
-      width: image.bitmap.width,
-      height: image.bitmap.height,
+      width: metadata.width,
+      height: metadata.height,
       size: buffer.length,
       originalSize: originalSize
     };
