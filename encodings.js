@@ -8,6 +8,7 @@
 // ============================================================================
 
 function encodeBase64(input) {
+    if (typeof input !== 'string') throw new Error('Input must be a string');
     return btoa(unescape(encodeURIComponent(input)));
 }
 
@@ -71,6 +72,7 @@ function decodeBase64URL(input) {
 // ============================================================================
 
 function encodeHex(input) {
+    if (typeof input !== 'string') throw new Error('Input must be a string');
     const bytes = new TextEncoder().encode(input);
     return Array.from(bytes)
         .map(b => b.toString(16).padStart(2, '0'))
@@ -109,6 +111,7 @@ function decodeHex(input) {
 const BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
 function encodeBase32(input) {
+    if (typeof input !== 'string') throw new Error('Input must be a string');
     const bytes = new TextEncoder().encode(input);
     let bits = 0;
     let value = 0;
@@ -222,6 +225,7 @@ function decodeBase32Hex(input) {
 // ============================================================================
 
 function encodeUUEncode(input) {
+    if (typeof input !== 'string') throw new Error('Input must be a string');
     const bytes = new TextEncoder().encode(input);
     let output = 'begin 644 data\n';
     
@@ -286,6 +290,7 @@ function decodeUUEncode(input) {
 // ============================================================================
 
 function encodeQuotedPrintable(input) {
+    if (typeof input !== 'string') throw new Error('Input must be a string');
     const bytes = new TextEncoder().encode(input);
     let output = '';
     let lineLength = 0;
@@ -312,6 +317,7 @@ function encodeQuotedPrintable(input) {
 }
 
 function decodeQuotedPrintable(input) {
+    if (typeof input !== 'string') throw new Error('Input must be a string');
     let output = '';
     let i = 0;
     
@@ -321,8 +327,11 @@ function decodeQuotedPrintable(input) {
             continue;
         }
         
-        if (input[i] === '=') {
+        if (input[i] === '=' && i + 2 < input.length) {
             const hex = input.substr(i + 1, 2);
+            if (!/^[0-9A-Fa-f]{2}$/.test(hex)) {
+                throw new Error('Invalid quoted-printable sequence: =' + hex);
+            }
             output += String.fromCharCode(parseInt(hex, 16));
             i += 3;
         } else {
@@ -357,6 +366,7 @@ function decodePercent(input) {
 const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 
 function encodeBase58(input) {
+    if (typeof input !== 'string') throw new Error('Input must be a string');
     const bytes = new TextEncoder().encode(input);
     const digits = [0];
 
@@ -419,41 +429,28 @@ function decodeBase58(input) {
 function encodeAscii85(input) {
     const bytes = new TextEncoder().encode(input);
     let output = '<~';
-    let tuple = 0;
-    let count = 0;
 
-    for (let i = 0; i < bytes.length; i++) {
-        tuple |= bytes[i] << (24 - (count * 8));
-        count++;
+    for (let i = 0; i < bytes.length; i += 4) {
+        const remaining = Math.min(4, bytes.length - i);
 
-        if (count === 4) {
-            if (tuple === 0) {
-                output += 'z';
-            } else {
-                const encoded = [];
-                for (let j = 0; j < 5; j++) {
-                    encoded.unshift(String.fromCharCode(33 + (tuple % 85)));
-                    tuple = Math.floor(tuple / 85);
-                }
-                output += encoded.join('');
+        // Build a 32-bit unsigned value from up to 4 bytes
+        let tuple = 0;
+        for (let j = 0; j < 4; j++) {
+            tuple = tuple * 256 + (j < remaining ? bytes[i + j] : 0);
+        }
+
+        if (remaining === 4 && tuple === 0) {
+            output += 'z';
+        } else {
+            // Encode into 5 base-85 digits
+            const encoded = [];
+            for (let j = 0; j < 5; j++) {
+                encoded.unshift(String.fromCharCode(33 + (tuple % 85)));
+                tuple = Math.floor(tuple / 85);
             }
-            tuple = 0;
-            count = 0;
+            // For partial groups, output only (remaining + 1) characters
+            output += encoded.slice(0, remaining + 1).join('');
         }
-    }
-
-    if (count > 0) {
-        // Pad with zeros
-        for (let i = count; i < 4; i++) {
-            tuple <<= 8;
-        }
-
-        const encoded = [];
-        for (let j = 0; j < count + 1; j++) {
-            encoded.unshift(String.fromCharCode(33 + (tuple % 85)));
-            tuple = Math.floor(tuple / 85);
-        }
-        output += encoded.join('');
     }
 
     output += '~>';
@@ -650,13 +647,19 @@ function decodeAtbash(input) {
 // ============================================================================
 
 function encodeBinary(input) {
+    if (typeof input !== 'string') throw new Error('Input must be a string');
     return Array.from(new TextEncoder().encode(input))
         .map(byte => byte.toString(2).padStart(8, '0'))
         .join(' ');
 }
 
 function decodeBinary(input) {
-    const bytes = input.replace(/\s/g, '').match(/.{1,8}/g) || [];
+    if (typeof input !== 'string') throw new Error('Input must be a string');
+    const cleaned = input.replace(/\s/g, '');
+    if (cleaned && !/^[01]+$/.test(cleaned)) {
+        throw new Error('Invalid binary string: only 0 and 1 allowed');
+    }
+    const bytes = cleaned.match(/.{1,8}/g) || [];
     return new TextDecoder().decode(
         new Uint8Array(bytes.map(b => parseInt(b, 2)))
     );
@@ -678,6 +681,7 @@ const MORSE_CODE = {
 };
 
 function encodeMorse(input) {
+    if (typeof input !== 'string') throw new Error('Input must be a string');
     return input.toUpperCase()
         .split('')
         .map(char => MORSE_CODE[char] || char)

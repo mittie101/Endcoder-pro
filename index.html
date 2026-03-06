@@ -72,6 +72,38 @@
             <div class="control-group">
                 <button id="loadFile" class="btn" title="Ctrl+O">Load File</button>
                 <button id="saveOutput" class="btn" title="Ctrl+S">Save Output</button>
+                <button id="swapBtn" class="btn" title="Ctrl+Shift+X">Swap</button>
+                <button id="togglePipeline" class="btn">Pipeline</button>
+            </div>
+        </div>
+
+        <!-- Encoding Pipeline -->
+        <div id="pipelineContainer" class="controls" style="display:none;">
+            <div class="control-group">
+                <label>Pipeline:</label>
+                <div id="pipelineSteps" style="display:flex; gap:5px; flex-wrap:wrap;"></div>
+            </div>
+            <div class="control-group">
+                <select id="pipelineEncoding">
+                    <option value="base64">Base64</option>
+                    <option value="base64url">Base64 URL</option>
+                    <option value="base32">Base32</option>
+                    <option value="hex">Hexadecimal</option>
+                    <option value="binary">Binary</option>
+                    <option value="ascii85">ASCII85</option>
+                    <option value="base58">Base58</option>
+                    <option value="rot13">ROT13</option>
+                    <option value="percent">Percent</option>
+                </select>
+                <select id="pipelineAction">
+                    <option value="encode">Encode</option>
+                    <option value="decode">Decode</option>
+                </select>
+                <button id="addPipelineStep" class="btn-small">+ Add Step</button>
+            </div>
+            <div class="control-group">
+                <button id="runPipeline" class="btn btn-primary">Run Pipeline</button>
+                <button id="clearPipeline" class="btn-small">Clear Pipeline</button>
             </div>
         </div>
 

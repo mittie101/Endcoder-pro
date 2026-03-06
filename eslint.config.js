@@ -1,0 +1,73 @@
+const prettier = require('eslint-config-prettier');
+
+module.exports = [
+  {
+    files: ['**/*.js'],
+    languageOptions: {
+      ecmaVersion: 2020,
+      sourceType: 'script',
+      globals: {
+        // Node
+        require: 'readonly',
+        module: 'readonly',
+        exports: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+        process: 'readonly',
+        Buffer: 'readonly',
+        console: 'readonly',
+        setTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearTimeout: 'readonly',
+        clearInterval: 'readonly',
+        // Browser
+        window: 'readonly',
+        document: 'readonly',
+        navigator: 'readonly',
+        localStorage: 'readonly',
+        fetch: 'readonly',
+        alert: 'readonly',
+        confirm: 'readonly',
+        prompt: 'readonly',
+        TextEncoder: 'readonly',
+        TextDecoder: 'readonly',
+        Uint8Array: 'readonly',
+        URL: 'readonly',
+        btoa: 'readonly',
+        atob: 'readonly',
+        Event: 'readonly',
+        HTMLElement: 'readonly',
+        // App globals
+        Converter: 'readonly',
+        UIHandler: 'readonly',
+        HistoryManager: 'readonly',
+        JWTHandler: 'readonly',
+        DiffTool: 'readonly',
+        AdvancedFeatures: 'readonly',
+        App: 'readonly',
+        monaco: 'readonly',
+        QRCode: 'readonly',
+        Encodings: 'readonly',
+        // Jest
+        describe: 'readonly',
+        test: 'readonly',
+        expect: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        jest: 'readonly',
+        it: 'readonly',
+      },
+    },
+    rules: {
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+      'no-console': 'off',
+      'prefer-const': 'warn',
+      'no-var': 'warn',
+      'no-undef': 'error',
+    },
+  },
+  prettier,
+  {
+    ignores: ['node_modules/**', 'dist/**'],
+  },
+];
