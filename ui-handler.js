@@ -50,18 +50,11 @@ class UIHandler {
   }
 
   setupThemeToggle() {
-    const themeToggle = document.getElementById('themeToggle');
-    if (themeToggle) {
-      themeToggle.addEventListener('click', () => {
-        this.isDarkMode = !this.isDarkMode;
-        document.body.classList.toggle('light-theme', !this.isDarkMode);
-        this.updateMonacoTheme();
-      });
-    }
+    // Theme toggle is handled by App.toggleTheme() to avoid double-firing
   }
 
   updateMonacoTheme() {
-    const theme = this.isDarkMode ? 'vs-dark' : 'vs-light';
+    const theme = this.isDarkMode ? 'vs-dark' : 'vs';
     monaco.editor.setTheme(theme);
   }
 

@@ -134,7 +134,7 @@ function createMenu() {
       submenu: [
         {
           label: 'Documentation',
-          click: () => shell.openExternal('https://github.com/yourusername/base64-encoder-pro')
+          click: () => shell.openExternal('https://github.com/mittie101/Endcoder-pro')
         },
         { type: 'separator' },
         {
