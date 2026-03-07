@@ -1,5 +1,19 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
+// Read the per-session style nonce passed via webPreferences.additionalArguments.
+// Exposing MonacoEnvironment via contextBridge sets window.MonacoEnvironment in the page world
+// before any page script executes, so Monaco's dynamic <style> tags get the correct nonce
+// and style-src 'unsafe-inline' can be dropped from the CSP.
+const _nonceArg = process.argv.find(a => a.startsWith('--style-nonce='));
+const _styleNonce = _nonceArg ? _nonceArg.slice('--style-nonce='.length) : '';
+
+contextBridge.exposeInMainWorld('MonacoEnvironment', {
+    nonce: _styleNonce,
+    getWorkerUrl: function (_moduleId, _label) {
+        return './vendor/editor.worker.bundle.js';
+    }
+});
+
 contextBridge.exposeInMainWorld('electronAPI', {
     // File operations
     selectFile: () => ipcRenderer.invoke('select-file'),
@@ -26,9 +40,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     stopAPIServer:   ()     => ipcRenderer.invoke('stop-api-server'),
     getServerStatus: ()     => ipcRenderer.invoke('get-server-status'),
 
+    // API key rotation
+    rotateAPIKey: () => ipcRenderer.invoke('rotate-api-key'),
+
     // Menu events — each returns an unsubscribe function to prevent listener accumulation
     onMenuOpenFile:  (cb) => { ipcRenderer.on('menu-open-file',  cb); return () => ipcRenderer.removeListener('menu-open-file',  cb); },
     onMenuSaveOutput:(cb) => { ipcRenderer.on('menu-save-output',cb); return () => ipcRenderer.removeListener('menu-save-output',cb); },
     onStartServer:   (cb) => { ipcRenderer.on('start-server',    cb); return () => ipcRenderer.removeListener('start-server',    cb); },
-    onStopServer:    (cb) => { ipcRenderer.on('stop-server',     cb); return () => ipcRenderer.removeListener('stop-server',     cb); }
+    onStopServer:    (cb) => { ipcRenderer.on('stop-server',     cb); return () => ipcRenderer.removeListener('stop-server',     cb); },
+    onUpdateReady:   (cb) => { ipcRenderer.on('update-ready',    cb); return () => ipcRenderer.removeListener('update-ready',    cb); }
 });

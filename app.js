@@ -203,6 +203,7 @@ class App {
     // Server controls
     document.getElementById('startServer')?.addEventListener('click', () => this.startServer());
     document.getElementById('stopServer')?.addEventListener('click', () => this.stopServer());
+    document.getElementById('rotateKeyBtn')?.addEventListener('click', () => this.rotateKey());
     
     // History controls
     document.getElementById('clearHistory')?.addEventListener('click', () => this.clearHistory());
@@ -795,6 +796,25 @@ class App {
     }
     if (startBtn) startBtn.disabled = running;
     if (stopBtn) stopBtn.disabled = !running;
+    const rotateBtn = document.getElementById('rotateKeyBtn');
+    if (rotateBtn) rotateBtn.disabled = !running;
+  }
+
+  async rotateKey() {
+    if (!window.electronAPI?.rotateAPIKey) return;
+    try {
+      const result = await window.electronAPI.rotateAPIKey();
+      if (result.success) {
+        // Update the displayed key in-place
+        const display = document.getElementById('apiKeyDisplay');
+        if (display) display.textContent = result.apiKey;
+        this.ui.showSuccess('API key rotated');
+      } else {
+        this.ui.showError(result.error || 'Failed to rotate key');
+      }
+    } catch (error) {
+      this.ui.showError(error.message);
+    }
   }
 
   exportAsCSharp() {

@@ -74,6 +74,6 @@ module.exports = [
   },
   prettier,
   {
-    ignores: ['node_modules/**', 'dist/**'],
+    ignores: ['node_modules/**', 'dist/**', 'vendor/**', 'vendor-src/**'],
   },
 ];

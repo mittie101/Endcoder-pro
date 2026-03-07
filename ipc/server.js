@@ -19,6 +19,7 @@ try {
 
 let serverInstance = null;
 let serverPort = 3000;
+let apiApp = null;
 
 function register() {
     ipcMain.handle('start-api-server', async (event, port = cfg.DEFAULT_SERVER_PORT) => {
@@ -30,7 +31,7 @@ function register() {
                 return { success: false, error: 'Server already running', port: serverPort };
             }
 
-            const apiApp = express();
+            apiApp = express();
             apiApp.use(bodyParser.json({ limit: cfg.BODY_LIMIT }));
             apiApp.use(bodyParser.urlencoded({ extended: true, limit: cfg.BODY_LIMIT }));
 
@@ -69,12 +70,14 @@ function register() {
                 next();
             });
 
-            // API Key Authentication (skip root and health)
+            // API Key Authentication (skip root and health).
+            // Reads from req.app.locals.apiKey so rotate-api-key takes effect immediately.
             const authenticateAPIKey = (req, res, next) => {
                 if (req.path === '/' || req.path === '/api/health') return next();
                 const provided = req.headers['x-api-key'] || '';
+                const current = req.app.locals.apiKey;
                 const providedBuf = Buffer.from(provided);
-                const validBuf = Buffer.from(API_KEY);
+                const validBuf = Buffer.from(current);
                 if (providedBuf.length !== validBuf.length || !crypto.timingSafeEqual(providedBuf, validBuf)) {
                     return res.status(401).json({ error: 'Unauthorized', message: 'Invalid or missing X-API-Key header' });
                 }
@@ -184,6 +187,7 @@ function register() {
             if (!serverInstance) return { success: false, error: 'Server not running' };
             await new Promise((resolve) => serverInstance.close(resolve));
             serverInstance = null;
+            apiApp = null;
             return { success: true, message: 'Server stopped' };
         } catch (error) {
             return { success: false, error: error.message };
@@ -194,6 +198,22 @@ function register() {
         running: serverInstance !== null,
         port: serverPort
     }));
+
+    ipcMain.handle('rotate-api-key', async () => {
+        const newKey = crypto.randomBytes(32).toString('hex');
+        // Persist the new key encrypted at rest
+        try {
+            if (safeStorage && safeStorage.isEncryptionAvailable()
+                    && app && typeof app.getPath === 'function') {
+                const keyFile = path.join(app.getPath('userData'), 'server-api-key.enc');
+                const encrypted = safeStorage.encryptString(newKey);
+                await fsAsync.writeFile(keyFile, encrypted);
+            }
+        } catch { /* ignore persistence errors — key still hot-swaps in memory */ }
+        // Hot-swap: update the running server without restart
+        if (apiApp) apiApp.locals.apiKey = newKey;
+        return { success: true, apiKey: newKey };
+    });
 }
 
 function shutdown() {

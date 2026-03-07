@@ -34,7 +34,12 @@ function setup(getWindow) {
             message: 'Update downloaded. It will be installed when you restart the app.',
             buttons: ['Restart Now', 'Later']
         });
-        if (result.response === 0) autoUpdater.quitAndInstall();
+        if (result.response === 0) {
+            autoUpdater.quitAndInstall();
+        } else {
+            // User chose Later — push a persistent in-app banner so they aren't left wondering
+            win.webContents.send('update-ready');
+        }
     });
 
     // Retry the update check up to 3 times with exponential back-off (network may be unavailable at startup)

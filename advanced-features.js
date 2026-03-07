@@ -8,6 +8,14 @@ class AdvancedFeatures {
   
     init() {
       this.setupEventListeners();
+      this._listenForUpdates();
+    }
+
+    _listenForUpdates() {
+      if (!window.electronAPI?.onUpdateReady) return;
+      window.electronAPI.onUpdateReady(() => {
+        this.ui.showNotification('Update downloaded — restart the app to apply it.', 'info');
+      });
     }
   
     setupEventListeners() {

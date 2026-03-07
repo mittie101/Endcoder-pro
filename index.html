@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Endcoder Pro v3.1</title>
     <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/editor/editor.main.css">
+    <link rel="stylesheet" href="vendor/monaco.bundle.css">
 </head>
 <body>
     <div id="loader" class="loader hidden">
@@ -286,6 +286,7 @@
                 <div class="form-group"><label>Port:</label><input type="number" id="serverPort" value="3000"></div>
                 <button id="startServer" class="btn btn-primary">Start</button>
                 <button id="stopServer" class="btn btn-danger" disabled>Stop</button>
+                <button id="rotateKeyBtn" class="btn" disabled title="Generate and apply a new API key instantly">Rotate Key</button>
                 <div id="serverStatus" class="server-status stopped">Not running</div>
             </div>
         </div>
@@ -304,27 +305,8 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
-    
-    <script>
-        // Temporarily disable AMD for QRious
-        var _define = window.define;
-        var _exports = window.exports;
-        window.define = undefined;
-        window.exports = undefined;
-    </script>
     <script src="node_modules/qrious/dist/qrious.min.js"></script>
-    <script>
-        // Restore AMD for Monaco
-        window.define = _define;
-        window.exports = _exports;
-        console.log('QRious available:', typeof window.QRious);
-    </script>
-    
-    <script>
-        require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' }});
-        require(['vs/editor/editor.main'], function() { });
-    </script>
+    <script src="vendor/monaco.bundle.js"></script>
     
     <script src="encodings.js"></script>
     <script src="converter.js"></script>

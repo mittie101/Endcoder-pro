@@ -21,7 +21,8 @@ jest.mock('electron', () => {
         ipcMain: { handle: jest.fn() },
         dialog: { showMessageBox: jest.fn() },
         shell: { openExternal: jest.fn() },
-        Menu: { buildFromTemplate: jest.fn(() => ({})), setApplicationMenu: jest.fn() }
+        Menu: { buildFromTemplate: jest.fn(() => ({})), setApplicationMenu: jest.fn() },
+        // crypto module is used by window.js for nonce generation — not needed in mock
     };
 });
 
@@ -37,6 +38,11 @@ describe('BrowserWindow security flags', () => {
     test('contextIsolation is true',  () => expect(webPrefs.contextIsolation).toBe(true));
     test('sandbox is true',           () => expect(webPrefs.sandbox).toBe(true));
     test('webSecurity is true',       () => expect(webPrefs.webSecurity).toBe(true));
+    test('additionalArguments contains a style-nonce', () => {
+        expect(webPrefs.additionalArguments).toEqual(
+            expect.arrayContaining([expect.stringMatching(/^--style-nonce=[A-Za-z0-9+/]+$/)])
+        );
+    });
 });
 
 describe('Content Security Policy', () => {
@@ -57,12 +63,23 @@ describe('Content Security Policy', () => {
         expect(getCsp()).toContain("default-src 'self'");
     });
 
-    test('CSP allows cdn.jsdelivr.net for Monaco Editor scripts', () => {
-        expect(getCsp()).toContain('cdn.jsdelivr.net');
+    test("CSP does not allow 'unsafe-eval' (Monaco is locally bundled)", () => {
+        expect(getCsp()).not.toContain('unsafe-eval');
+    });
+
+    test("CSP does not allow 'unsafe-inline' in style-src (Monaco uses nonce instead)", () => {
+        expect(getCsp()).not.toContain('unsafe-inline');
+    });
+
+    test("CSP style-src uses a per-session nonce for Monaco's dynamic <style> tags", () => {
+        expect(getCsp()).toMatch(/style-src 'self' 'nonce-[A-Za-z0-9+/]+'/)
+    });
+
+    test('CSP has no external CDN sources (all assets are self-hosted)', () => {
+        expect(getCsp()).not.toContain('cdn.jsdelivr.net');
     });
 
     test('CSP blocks inline scripts from unknown sources via default-src', () => {
-        // Presence of default-src 'self' means unlisted sources are blocked
         expect(getCsp()).toMatch(/default-src 'self'/);
     });
 });

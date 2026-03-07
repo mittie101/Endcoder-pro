@@ -1,5 +1,6 @@
 const { BrowserWindow, dialog, shell, Menu, app } = require('electron');
 const path = require('path');
+const crypto = require('crypto');
 
 let mainWindow = null;
 
@@ -8,6 +9,11 @@ function getWindow() {
 }
 
 function createWindow(onClosed) {
+    // Random per-session nonce for Monaco's dynamic <style> injection.
+    // Passed to the renderer via additionalArguments so preload can set MonacoEnvironment.nonce
+    // before any page script runs, allowing us to drop 'unsafe-inline' from style-src.
+    const styleNonce = crypto.randomBytes(16).toString('base64').replace(/=+$/, '');
+
     mainWindow = new BrowserWindow({
         width: 1400,
         height: 900,
@@ -19,7 +25,8 @@ function createWindow(onClosed) {
             contextIsolation: true,
             nodeIntegration: false,
             sandbox: true,
-            webSecurity: true
+            webSecurity: true,
+            additionalArguments: [`--style-nonce=${styleNonce}`]
         },
         backgroundColor: '#1a1a2e',
         show: false
@@ -28,20 +35,20 @@ function createWindow(onClosed) {
     mainWindow.loadFile(path.join(__dirname, '..', 'index.html'));
 
     // Content Security Policy.
-    // 'unsafe-eval' is required by Monaco Editor's AMD loader.
-    // 'unsafe-inline' for styles is needed until inline style= attributes are migrated to CSS classes.
+    // Monaco is locally bundled and uses MonacoEnvironment.nonce (set by preload) so all
+    // dynamically injected <style> tags carry the nonce — no 'unsafe-inline' needed.
     mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
         callback({
             responseHeaders: {
                 ...details.responseHeaders,
                 'Content-Security-Policy': [
                     "default-src 'self'; " +
-                    "script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net; " +
-                    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
+                    "script-src 'self'; " +
+                    `style-src 'self' 'nonce-${styleNonce}'; ` +
                     "img-src 'self' data: blob:; " +
-                    "connect-src 'self' https://cdn.jsdelivr.net; " +
-                    "worker-src blob:; " +
-                    "font-src 'self' https://cdn.jsdelivr.net data:"
+                    "connect-src 'self'; " +
+                    "worker-src 'self' blob:; " +
+                    "font-src 'self' data:"
                 ]
             }
         });

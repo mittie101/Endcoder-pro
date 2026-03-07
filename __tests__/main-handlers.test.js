@@ -423,6 +423,27 @@ describe('API server endpoints', () => {
     expect(res.headers['access-control-allow-origin']).toBe('http://localhost:8080');
   });
 
+  test('rotate-api-key returns a new key and old key is rejected', async () => {
+    const oldKey = apiKey;
+    const rotateResult = await handlers['rotate-api-key'](fakeEvent);
+    expect(rotateResult.success).toBe(true);
+    expect(rotateResult.apiKey).toBeTruthy();
+    expect(rotateResult.apiKey).not.toBe(oldKey);
+
+    // Old key should now be rejected
+    const { status: oldStatus } = await httpRequest('POST', '/api/encode',
+      { data: 'hello' }, { 'X-API-Key': oldKey });
+    expect(oldStatus).toBe(401);
+
+    // New key should be accepted
+    const { status: newStatus } = await httpRequest('POST', '/api/encode',
+      { data: 'hello' }, { 'X-API-Key': rotateResult.apiKey });
+    expect(newStatus).toBe(200);
+
+    // Update apiKey for any subsequent tests
+    apiKey = rotateResult.apiKey;
+  });
+
   test('CORS does NOT allow external origin', async () => {
     const opts = {
       hostname: 'localhost',
