@@ -28,7 +28,7 @@ npm test
 
 ## Code Style
 
-- Use consistent indentation (2 spaces)
+- Use consistent indentation (4 spaces)
 - Follow existing code patterns
 - Comment complex logic
 - Use meaningful variable names
