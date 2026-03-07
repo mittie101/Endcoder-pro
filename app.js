@@ -773,13 +773,13 @@ class App {
       if (running && apiKey) {
         statusEl.innerHTML = `
           <div class="status-badge running">Running on port ${port}</div>
-          <div style="margin-top: 10px; padding: 15px; background: rgba(0, 217, 255, 0.05); border: 1px solid rgba(0, 217, 255, 0.2); border-radius: 6px;">
-            <strong style="color: #00d9ff;">API Key:</strong>
-            <div style="display: flex; gap: 10px; align-items: center; margin-top: 8px;">
-              <code id="apiKeyDisplay" style="flex: 1; background: #0f1419; padding: 10px; border-radius: 4px; font-family: 'Consolas', monospace; font-size: 12px; overflow-x: auto;"></code>
+          <div class="api-key-box">
+            <strong class="api-key-label">API Key:</strong>
+            <div class="api-key-row">
+              <code id="apiKeyDisplay" class="api-key-code"></code>
               <button id="copyApiKeyBtn" class="btn-small">Copy</button>
             </div>
-            <small style="color: #7f8c8d; display: block; margin-top: 8px;">Include this in the "X-API-Key" header</small>
+            <small class="api-key-hint">Include this in the "X-API-Key" header</small>
           </div>
         `;
         // Set text content safely to avoid XSS
@@ -955,7 +955,7 @@ function initPasswordHashHandlers() {
             <div class="success">
               <h3>Password Hashed</h3>
               <p><strong>Algorithm:</strong> ${escapeHtml(result.algorithm)}</p>
-              <textarea id="hashResultText" readonly rows="3" style="width:100%; background:#1e1e1e; color:#fff;"></textarea>
+              <textarea id="hashResultText" readonly rows="3" class="hash-result-textarea"></textarea>
               <button id="copyHashBtn" class="btn-small">Copy</button>
             </div>`;
           // Set hash value safely to avoid XSS with special characters

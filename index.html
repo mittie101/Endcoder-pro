@@ -8,14 +8,14 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/editor/editor.main.css">
 </head>
 <body>
-    <div id="loader" class="loader" style="display: none;">
+    <div id="loader" class="loader hidden">
         <div class="loader-spinner"></div>
         <p>Processing...</p>
     </div>
 
     <div id="notificationContainer"></div>
     
-    <div id="qrCodeContainer" class="qr-overlay" style="display: none;">
+    <div id="qrCodeContainer" class="qr-overlay hidden">
         <div class="qr-box">
             <h3>QR Code Generated</h3>
             <canvas id="qrCanvas"></canvas>
@@ -28,7 +28,7 @@
 
     <header class="app-header">
         <div class="header-left">
-            <img src="logo.png" alt="Endcoder Pro" style="width: 40px; height: 40px; margin-right: 10px;">
+            <img src="logo.png" alt="Endcoder Pro" class="app-logo">
             <h1>Endcoder Pro</h1>
             <span class="version">v3.1</span>
         </div>
@@ -83,10 +83,10 @@
         </div>
 
         <!-- Encoding Pipeline -->
-        <div id="pipelineContainer" class="controls" style="display:none;">
+        <div id="pipelineContainer" class="controls hidden">
             <div class="control-group">
                 <label>Pipeline:</label>
-                <div id="pipelineSteps" style="display:flex; gap:5px; flex-wrap:wrap;"></div>
+                <div id="pipelineSteps" class="pipeline-steps"></div>
             </div>
             <div class="control-group">
                 <select id="pipelineEncoding">
@@ -194,7 +194,7 @@
                 <h2>Sign JWT</h2>
                 <div class="form-group">
                     <label>Payload:</label>
-                    <div id="monacoJWTPayload" style="height: 200px; border: 1px solid #444;"></div>
+                    <div id="monacoJWTPayload" class="monaco-jwt-editor"></div>
                 </div>
                 <div class="form-group">
                     <label>Secret:</label>
@@ -230,9 +230,9 @@
                         <option value="argon2">Argon2 (Best)</option>
                     </select>
                 </div>
-                <div id="bcryptRoundsGroup" class="form-group" style="display:none;"><label>Rounds:</label><input type="number" id="bcryptRounds" value="10"></div>
-                <div id="argon2OptionsGroup" class="form-group" style="display:none;"><label>Memory (KB):</label><input type="number" id="argon2Memory" value="65536"></div>
-                <div id="argon2TimeGroup" class="form-group" style="display:none;"><label>Iterations:</label><input type="number" id="argon2Time" value="3"></div>
+                <div id="bcryptRoundsGroup" class="form-group hidden"><label>Rounds:</label><input type="number" id="bcryptRounds" value="10"></div>
+                <div id="argon2OptionsGroup" class="form-group hidden"><label>Memory (KB):</label><input type="number" id="argon2Memory" value="65536"></div>
+                <div id="argon2TimeGroup" class="form-group hidden"><label>Iterations:</label><input type="number" id="argon2Time" value="3"></div>
                 <div id="pbkdf2IterationsGroup" class="form-group"><label>Iterations:</label><input type="number" id="pbkdf2Iterations" value="100000"></div>
                 
                 <button id="hashPasswordBtn" class="btn btn-primary">Hash Password</button>

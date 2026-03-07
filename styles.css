@@ -289,6 +289,42 @@ textarea { resize: vertical; width: 100%; font-family: 'Consolas', 'Monaco', mon
     z-index: 1000;
 }
 
+/* Utility — replaces all inline style="display:none" attributes in HTML source */
+.hidden { display: none; }
+
+/* App header logo */
+.app-logo { width: 40px; height: 40px; margin-right: 10px; }
+
+/* Pipeline steps strip */
+.pipeline-steps { display: flex; gap: 5px; flex-wrap: wrap; }
+
+/* JWT payload Monaco editor host */
+.monaco-jwt-editor { height: 200px; border: 1px solid #444; }
+
+/* API key display panel (server status) */
+.api-key-box {
+    margin-top: 10px;
+    padding: 15px;
+    background: rgba(0, 217, 255, 0.05);
+    border: 1px solid rgba(0, 217, 255, 0.2);
+    border-radius: 6px;
+}
+.api-key-label { color: #00d9ff; }
+.api-key-row { display: flex; gap: 10px; align-items: center; margin-top: 8px; }
+.api-key-code {
+    flex: 1;
+    background: #0f1419;
+    padding: 10px;
+    border-radius: 4px;
+    font-family: 'Consolas', monospace;
+    font-size: 12px;
+    overflow-x: auto;
+}
+.api-key-hint { color: #7f8c8d; display: block; margin-top: 8px; }
+
+/* Hash result read-only textarea */
+.hash-result-textarea { width: 100%; background: #1e1e1e; color: #fff; }
+
 /* History lazy-load placeholder — sized to prevent layout shift during hydration */
 .history-item--pending {
     min-height: 80px;

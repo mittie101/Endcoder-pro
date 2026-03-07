@@ -1,4 +1,6 @@
-const { ipcMain } = require('electron');
+const { ipcMain, app, safeStorage } = require('electron');
+const path = require('path');
+const fsAsync = require('fs').promises;
 const crypto = require('crypto');
 const cfg = require('../main/config');
 
@@ -32,7 +34,28 @@ function register() {
             apiApp.use(bodyParser.json({ limit: cfg.BODY_LIMIT }));
             apiApp.use(bodyParser.urlencoded({ extended: true, limit: cfg.BODY_LIMIT }));
 
-            const API_KEY = process.env.ENDCODER_API_KEY || crypto.randomBytes(32).toString('hex');
+            // Load or generate the server API key — persisted encrypted at rest via safeStorage.
+            // Falls back to an ephemeral key if safeStorage is unavailable (e.g. test environments).
+            let API_KEY;
+            try {
+                if (safeStorage && safeStorage.isEncryptionAvailable()
+                        && app && typeof app.getPath === 'function') {
+                    const keyFile = path.join(app.getPath('userData'), 'server-api-key.enc');
+                    try {
+                        const encrypted = await fsAsync.readFile(keyFile);
+                        API_KEY = safeStorage.decryptString(encrypted);
+                    } catch {
+                        // No persisted key yet — generate one and store it encrypted
+                        API_KEY = process.env.ENDCODER_API_KEY || crypto.randomBytes(32).toString('hex');
+                        const encrypted = safeStorage.encryptString(API_KEY);
+                        await fsAsync.writeFile(keyFile, encrypted);
+                    }
+                } else {
+                    API_KEY = process.env.ENDCODER_API_KEY || crypto.randomBytes(32).toString('hex');
+                }
+            } catch {
+                API_KEY = process.env.ENDCODER_API_KEY || crypto.randomBytes(32).toString('hex');
+            }
             apiApp.locals.apiKey = API_KEY;
 
             // CORS — localhost origins only
