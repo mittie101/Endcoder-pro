@@ -23,7 +23,7 @@ function decodeBase64(input) {
         }
         
         return decodeURIComponent(escape(atob(input)));
-    } catch (e) {
+    } catch {
         // Try alternative decode method
         try {
             const decoded = atob(input);
@@ -143,7 +143,7 @@ function decodeBase32(input) {
     input = input.toUpperCase().replace(/=+$/, '');
     let bits = 0;
     let value = 0;
-    let output = [];
+    const output = [];
 
     for (let i = 0; i < input.length; i++) {
         const index = BASE32_ALPHABET.indexOf(input[i]);
@@ -200,7 +200,7 @@ function decodeBase32Hex(input) {
     input = input.toUpperCase().replace(/=+$/, '');
     let bits = 0;
     let value = 0;
-    let output = [];
+    const output = [];
 
     for (let i = 0; i < input.length; i++) {
         const index = BASE32_HEX_ALPHABET.indexOf(input[i]);
@@ -258,15 +258,15 @@ function decodeUUEncode(input) {
         line && !line.startsWith('begin') && !line.startsWith('end') && line !== '`'
     );
     
-    let output = [];
-    
+    const output = [];
+
     for (const line of lines) {
         if (!line) continue;
-        
+
         const len = line.charCodeAt(0) - 32;
         if (len <= 0) continue;
-        
-        let lineBytes = [];
+
+        const lineBytes = [];
         for (let i = 1; i < line.length; i += 4) {
             const c1 = (line.charCodeAt(i) - 32) & 63;
             const c2 = i + 1 < line.length ? (line.charCodeAt(i + 1) - 32) & 63 : 0;
@@ -354,7 +354,7 @@ function encodePercent(input) {
 function decodePercent(input) {
     try {
         return decodeURIComponent(input);
-    } catch (e) {
+    } catch {
         throw new Error('Invalid percent-encoded string');
     }
 }

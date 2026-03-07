@@ -18,7 +18,7 @@ class App {
   }
 
   async init() {
-    console.log('Initializing Endcoder Pro v3.0...');
+    console.log('Initializing Endcoder Pro v3.1...');
     
     // Initialize theme
     this.initTheme();
@@ -337,7 +337,7 @@ class App {
     if (inputEditor) {
       // Listen for content changes that might be paste events
       let lastLength = 0;
-      inputEditor.onDidChangeModelContent((e) => {
+      inputEditor.onDidChangeModelContent((_e) => {
         const currentValue = inputEditor.getValue();
         const lengthDiff = currentValue.length - lastLength;
         lastLength = currentValue.length;
@@ -582,7 +582,7 @@ class App {
         finalOutput = JSON.stringify(json, null, 2);
         outputEditor.setValue(finalOutput);
         monaco.editor.setModelLanguage(outputEditor.getModel(), 'json');
-      } catch (e) {
+      } catch {
         monaco.editor.setModelLanguage(outputEditor.getModel(), 'plaintext');
       }
 

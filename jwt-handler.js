@@ -1,4 +1,5 @@
 // jwt-handler.js - JWT verification and manipulation
+/* exported JWTHandler */
 class JWTHandler {
   constructor(uiHandler) {
     this.ui = uiHandler;
@@ -193,7 +194,7 @@ class JWTHandler {
         document.getElementById('jwtSignedToken').value = result.token;
         document.getElementById('copySignedTokenBtn').addEventListener('click', () => {
           navigator.clipboard.writeText(result.token)
-            .then(() => window.ui.showSuccess('Token copied to clipboard'));
+            .then(() => this.ui.showSuccess('Token copied to clipboard'));
         });
 
         this.ui.showSuccess('Token generated successfully');

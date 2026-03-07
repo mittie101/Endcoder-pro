@@ -8,7 +8,7 @@ try {
   autoUpdater = require('electron-updater').autoUpdater;
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = true;
-} catch (e) {
+} catch {
   console.warn('electron-updater not available - auto-update disabled');
 }
 
@@ -17,14 +17,14 @@ let sharp;
 try {
   sharp = require('sharp');
   console.log('sharp loaded successfully for image processing');
-} catch (e) {
+} catch {
   console.warn('sharp not available - image optimization disabled');
 }
 
 let jwt;
 try {
   jwt = require('jsonwebtoken');
-} catch (e) {
+} catch {
   console.warn('jsonwebtoken not available - JWT features disabled');
 }
 
@@ -32,7 +32,7 @@ let express, bodyParser;
 try {
   express = require('express');
   bodyParser = require('body-parser');
-} catch (e) {
+} catch {
   console.warn('Express not available - API server disabled');
 }
 

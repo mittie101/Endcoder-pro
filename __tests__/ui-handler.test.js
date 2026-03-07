@@ -88,7 +88,7 @@ describe('UIHandler', () => {
       expect(ui.getMonacoEditor('input')).toBe(mockEditor);
     });
 
-    test('returns null for unset editor', () => {
+    test('returns undefined for unset editor', () => {
       expect(ui.getMonacoEditor('nonexistent')).toBeUndefined();
     });
   });

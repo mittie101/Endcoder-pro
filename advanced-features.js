@@ -1,4 +1,5 @@
 // advanced-features.js - Sanitize, Snippets, and QR Codes
+/* exported AdvancedFeatures */
 class AdvancedFeatures {
     constructor(uiHandler) {
       this.ui = uiHandler;

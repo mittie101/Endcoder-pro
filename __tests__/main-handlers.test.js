@@ -190,8 +190,6 @@ describe('IPC: sign-jwt and verify-jwt', () => {
   });
 
   test('sign-jwt without jwt returns error', async () => {
-    // Temporarily replace the handler with one that simulates jwt not available
-    const origHandler = handlers['sign-jwt'];
     // Test the "no jwt" branch by providing a bad payload that jwt.sign will reject
     const result = await handlers['sign-jwt'](fakeEvent, null, 'secret', 'HS256', null);
     expect(result.success).toBe(false);
@@ -201,8 +199,6 @@ describe('IPC: sign-jwt and verify-jwt', () => {
 
 // ── API server integration ────────────────────────────────────────────────────
 describe('IPC: start-api-server / stop-api-server / get-server-status', () => {
-  let apiKey;
-
   afterEach(async () => {
     // Always stop server between tests to avoid EADDRINUSE
     await handlers['stop-api-server'](fakeEvent);
@@ -213,7 +209,6 @@ describe('IPC: start-api-server / stop-api-server / get-server-status', () => {
     expect(result.success).toBe(true);
     expect(result.apiKey).toBeTruthy();
     expect(typeof result.port).toBe('number');
-    apiKey = result.apiKey;
   });
 
   test('get-server-status reflects running state', async () => {
@@ -419,8 +414,7 @@ describe('API server endpoints', () => {
     };
     const res = await new Promise((resolve, reject) => {
       const req = http.request(opts, (r) => {
-        let raw = '';
-        r.on('data', (c) => { raw += c; });
+        r.on('data', () => {});
         r.on('end', () => resolve({ headers: r.headers, status: r.statusCode }));
       });
       req.on('error', reject);
@@ -439,8 +433,7 @@ describe('API server endpoints', () => {
     };
     const res = await new Promise((resolve, reject) => {
       const req = http.request(opts, (r) => {
-        let raw = '';
-        r.on('data', (c) => { raw += c; });
+        r.on('data', () => {});
         r.on('end', () => resolve({ headers: r.headers, status: r.statusCode }));
       });
       req.on('error', reject);

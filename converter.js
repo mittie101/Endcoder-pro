@@ -1,4 +1,5 @@
 // converter.js - Core conversion logic
+/* exported Converter */
 class Converter {
   constructor() {
     this.encodings = window.Encodings;
@@ -181,7 +182,12 @@ class Converter {
       base58: { name: 'Base58', charset: '1-9, A-Z, a-z (no 0, O, I, l)', padding: 'none' },
       uuencode: { name: 'UUEncode', charset: 'ASCII 32-95', padding: 'none' },
       'quoted-printable': { name: 'Quoted-Printable', charset: 'ASCII', padding: 'none' },
-      percent: { name: 'Percent Encoding', charset: 'ASCII + %XX', padding: 'none' }
+      percent: { name: 'Percent Encoding', charset: 'ASCII + %XX', padding: 'none' },
+      rot13: { name: 'ROT13', charset: 'A-Z, a-z', padding: 'none' },
+      caesar: { name: 'Caesar Cipher', charset: 'A-Z, a-z', padding: 'none' },
+      atbash: { name: 'Atbash', charset: 'A-Z, a-z', padding: 'none' },
+      'html-entities': { name: 'HTML Entities', charset: 'ASCII + named/numeric entities', padding: 'none' },
+      morse: { name: 'Morse Code', charset: '. - /', padding: 'none' }
     };
 
     return info[encoding] || { name: 'Unknown', charset: '', padding: '' };

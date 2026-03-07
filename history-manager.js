@@ -1,4 +1,5 @@
 // history-manager.js - Conversion history management
+/* exported HistoryManager */
 class HistoryManager {
   constructor() {
     this.history = [];

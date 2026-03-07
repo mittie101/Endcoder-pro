@@ -1,4 +1,5 @@
 // ui-handler.js - UI management and interactions
+/* exported UIHandler */
 class UIHandler {
   constructor() {
     this.currentTab = 'encoder';

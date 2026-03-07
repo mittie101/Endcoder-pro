@@ -30,7 +30,8 @@ describe('Converter', () => {
     test('encodes all supported formats without error', () => {
       const formats = [
         'base64', 'base64url', 'base32', 'base32hex', 'hex',
-        'binary', 'ascii85', 'base58', 'uuencode', 'quoted-printable', 'percent'
+        'binary', 'ascii85', 'base58', 'uuencode', 'quoted-printable', 'percent',
+        'rot13', 'caesar', 'atbash', 'html-entities', 'morse'
       ];
       for (const format of formats) {
         expect(() => converter.encode('test', format)).not.toThrow();
@@ -67,7 +68,8 @@ describe('Converter', () => {
   describe('round-trips through all encodings', () => {
     const formats = [
       'base64', 'base64url', 'base32', 'base32hex', 'hex',
-      'binary', 'ascii85', 'base58', 'uuencode', 'quoted-printable', 'percent'
+      'binary', 'ascii85', 'base58', 'uuencode', 'quoted-printable', 'percent',
+      'rot13', 'caesar', 'atbash', 'html-entities'
     ];
 
     for (const format of formats) {
@@ -78,6 +80,13 @@ describe('Converter', () => {
         expect(decoded).toBe(input);
       });
     }
+
+    test('round-trip: morse (uppercase only — morse does not preserve case)', () => {
+      const input = 'HELLO WORLD';
+      const encoded = converter.encode(input, 'morse');
+      const decoded = converter.decode(encoded, 'morse');
+      expect(decoded).toBe(input);
+    });
   });
 
   describe('detectEncoding', () => {

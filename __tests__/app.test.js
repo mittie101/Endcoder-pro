@@ -5,10 +5,9 @@ const path = require('path');
 // ── helpers ──────────────────────────────────────────────────────────────────
 function createMockEditor(initialValue = '') {
   let value = initialValue;
-  let lang = 'plaintext';
   const model = {
     getLineCount: () => (value.match(/\n/g) || []).length + 1,
-    language: lang
+    language: 'plaintext'
   };
   return {
     getValue: () => value,

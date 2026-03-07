@@ -3,7 +3,7 @@
 // Mock DOM APIs needed by DiffTool
 global.document = {
   getElementById: jest.fn(() => null),
-  createElement: jest.fn((tag) => {
+  createElement: jest.fn(() => {
     const el = {
       textContent: '',
       get innerHTML() {
@@ -34,7 +34,7 @@ describe('DiffTool', () => {
   };
 
   beforeEach(() => {
-    diffTool = new DiffTool(mockUI); // eslint-disable-line no-use-before-define
+    diffTool = new DiffTool(mockUI);
     jest.clearAllMocks();
   });
 

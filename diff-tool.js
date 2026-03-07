@@ -1,4 +1,5 @@
 // diff-tool.js - Comparison and diff functionality
+/* exported DiffTool */
 class DiffTool {
   constructor(uiHandler) {
     this.ui = uiHandler;

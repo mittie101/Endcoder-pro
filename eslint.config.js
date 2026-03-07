@@ -4,7 +4,7 @@ module.exports = [
   {
     files: ['**/*.js'],
     languageOptions: {
-      ecmaVersion: 2020,
+      ecmaVersion: 2022,
       sourceType: 'script',
       globals: {
         // Node
@@ -20,6 +20,7 @@ module.exports = [
         setInterval: 'readonly',
         clearTimeout: 'readonly',
         clearInterval: 'readonly',
+        global: 'readonly',
         // Browser
         window: 'readonly',
         document: 'readonly',
@@ -33,6 +34,7 @@ module.exports = [
         TextDecoder: 'readonly',
         Uint8Array: 'readonly',
         URL: 'readonly',
+        Blob: 'readonly',
         btoa: 'readonly',
         atob: 'readonly',
         Event: 'readonly',
@@ -47,6 +49,7 @@ module.exports = [
         App: 'readonly',
         monaco: 'readonly',
         QRCode: 'readonly',
+        QRious: 'readonly',
         Encodings: 'readonly',
         // Jest
         describe: 'readonly',
@@ -54,12 +57,14 @@ module.exports = [
         expect: 'readonly',
         beforeEach: 'readonly',
         afterEach: 'readonly',
+        beforeAll: 'readonly',
+        afterAll: 'readonly',
         jest: 'readonly',
         it: 'readonly',
       },
     },
     rules: {
-      'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', caughtErrors: 'none' }],
       'no-console': 'off',
       'prefer-const': 'warn',
       'no-var': 'warn',
