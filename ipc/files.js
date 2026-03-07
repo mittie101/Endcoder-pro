@@ -1,0 +1,65 @@
+const { ipcMain, dialog } = require('electron');
+const fs = require('fs').promises;
+const path = require('path');
+const { getWindow } = require('../main/window');
+const { allowedPaths } = require('../main/state');
+
+function register() {
+    ipcMain.handle('select-file', async () => {
+        const result = await dialog.showOpenDialog(getWindow(), {
+            properties: ['openFile'],
+            filters: [
+                { name: 'All Files',   extensions: ['*'] },
+                { name: 'Images',      extensions: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'] },
+                { name: 'Text Files',  extensions: ['txt', 'json', 'xml', 'html', 'css', 'js'] }
+            ]
+        });
+        if (!result.canceled && result.filePaths.length > 0) {
+            const filePath = result.filePaths[0];
+            allowedPaths.add(filePath);
+            return filePath;
+        }
+        return null;
+    });
+
+    ipcMain.handle('read-file', async (event, filePath) => {
+        if (!filePath || !allowedPaths.has(filePath)) {
+            return { success: false, error: 'File access not permitted' };
+        }
+        try {
+            const stats = await fs.stat(filePath);
+            const buffer = await fs.readFile(filePath);
+            return {
+                success: true,
+                buffer: buffer.toString('base64'),
+                size: stats.size,
+                name: path.basename(filePath),
+                path: filePath
+            };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    });
+
+    ipcMain.handle('save-file', async (event, data, defaultName = 'output.txt') => {
+        const result = await dialog.showSaveDialog(getWindow(), {
+            defaultPath: defaultName,
+            filters: [
+                { name: 'All Files',    extensions: ['*'] },
+                { name: 'Text Files',   extensions: ['txt'] },
+                { name: 'Base64 Files', extensions: ['b64'] }
+            ]
+        });
+        if (!result.canceled && result.filePath) {
+            try {
+                await fs.writeFile(result.filePath, data);
+                return { success: true, path: result.filePath };
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        }
+        return { success: false, error: 'Save cancelled' };
+    });
+}
+
+module.exports = { register };
