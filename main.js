@@ -58,6 +58,10 @@ let mainWindow;
 let serverInstance = null;
 let serverPort = 3000;
 
+// Tracks file paths the user explicitly opened via the system dialog.
+// Only these paths may be read back by the renderer via 'read-file'.
+const allowedPaths = new Set();
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1400,
@@ -228,12 +232,17 @@ ipcMain.handle('select-file', async () => {
   });
 
   if (!result.canceled && result.filePaths.length > 0) {
-    return result.filePaths[0];
+    const filePath = result.filePaths[0];
+    allowedPaths.add(filePath);
+    return filePath;
   }
   return null;
 });
 
 ipcMain.handle('read-file', async (event, filePath) => {
+  if (!filePath || !allowedPaths.has(filePath)) {
+    return { success: false, error: 'File access not permitted' };
+  }
   try {
     const stats = await fs.stat(filePath);
     const buffer = await fs.readFile(filePath);
@@ -643,10 +652,11 @@ ipcMain.handle('start-api-server', async (event, port = 3000) => {
         return next();
       }
 
-      const apiKey = req.headers['x-api-key'];
-      
-      if (!apiKey || apiKey !== API_KEY) {
-        return res.status(401).json({ 
+      const provided = req.headers['x-api-key'] || '';
+      const providedBuf = Buffer.from(provided);
+      const validBuf = Buffer.from(API_KEY);
+      if (providedBuf.length !== validBuf.length || !crypto.timingSafeEqual(providedBuf, validBuf)) {
+        return res.status(401).json({
           error: 'Unauthorized',
           message: 'Invalid or missing X-API-Key header'
         });

@@ -34,8 +34,8 @@ Professional encoding/decoding toolkit with advanced cryptographic features, bui
 
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR_USERNAME/endcoder-pro.git
-cd endcoder-pro
+git clone https://github.com/mittie101/Endcoder-pro.git
+cd Endcoder-pro
 
 # Install dependencies
 npm install
@@ -148,3 +148,13 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## Support
 
 For issues and feature requests, please use the GitHub Issues page.
+
+## Supporting Development
+
+Endcoder Pro is free and always will be. If you find it useful, crypto donations are appreciated — no pressure at all.
+
+- **Bitcoin (BTC):** `bc1qpt4vhvj0na5g60xqka2xv72l9p70shvttl638l` *(Mainnet only)*
+- **Dogecoin (DOGE):** `DETt24UWu5KkmubvYNj1i2Vskn9oRGmcNL` *(Mainnet only)*
+- **Litecoin (LTC):** `ltc1qtw3zf7q75pq9cyc0e7u68upn7wrqjqkus2my47` *(Mainnet only)*
+
+Starring the repo or sharing it with colleagues is equally appreciated.

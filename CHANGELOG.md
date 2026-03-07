@@ -2,7 +2,7 @@
 
 All notable changes to Endcoder Pro will be documented in this file.
 
-## [3.0.0] - 2024
+## [3.0.0] - 2024-11-01
 
 ### Added
 - Monaco Editor integration for professional code editing
