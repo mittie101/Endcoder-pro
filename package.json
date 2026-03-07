@@ -5,7 +5,7 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "prebuild": "npm install",
+    "prebuild": "npm install && electron-rebuild -f -w bcrypt,argon2",
     "build": "electron-builder",
     "build:win": "electron-builder --win",
     "build:mac": "electron-builder --mac",
@@ -63,7 +63,9 @@
     },
     "asarUnpack": [
       "node_modules/bcrypt/**/*",
-      "node_modules/argon2/**/*"
+      "node_modules/argon2/**/*",
+      "node_modules/sharp/**/*",
+      "node_modules/@img/**/*"
     ],
     "files": [
       "**/*",
