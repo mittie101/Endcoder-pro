@@ -605,16 +605,15 @@ function encodeHTMLEntities(input, namedOnly = false) {
     }
 }
 
-function decodeHTMLEntities(input) {
-    // Create reverse mapping
-    const reverseEntities = {};
-    for (const [char, entity] of Object.entries(HTML_ENTITIES)) {
-        reverseEntities[entity] = char;
-    }
+// Pre-built reverse mapping (computed once at module load, not on every call)
+const REVERSE_HTML_ENTITIES = Object.fromEntries(
+    Object.entries(HTML_ENTITIES).map(([char, entity]) => [entity, char])
+);
 
+function decodeHTMLEntities(input) {
     return input
         // Decode named entities
-        .replace(/&[a-zA-Z]+;/g, entity => reverseEntities[entity] || entity)
+        .replace(/&[a-zA-Z]+;/g, entity => REVERSE_HTML_ENTITIES[entity] || entity)
         // Decode numeric entities
         .replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(parseInt(dec, 10)))
         // Decode hex entities

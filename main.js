@@ -534,11 +534,16 @@ ipcMain.handle('hash-password-pbkdf2', async (event, password, iterations = 1000
   try {
     const crypto = require('crypto');
     const salt = crypto.randomBytes(16);
-    const hash = crypto.pbkdf2Sync(password, salt, iterations, 64, 'sha512');
-    
+    const hash = await new Promise((resolve, reject) => {
+      crypto.pbkdf2(password, salt, iterations, 64, 'sha512', (err, key) => {
+        if (err) reject(err);
+        else resolve(key);
+      });
+    });
+
     // Combine salt and hash
     const combined = `$pbkdf2$${iterations}$${salt.toString('base64')}$${hash.toString('base64')}`;
-    
+
     return {
       success: true,
       hash: combined,
@@ -567,10 +572,15 @@ ipcMain.handle('verify-password-pbkdf2', async (event, password, hashString) => 
     const iterations = parseInt(parts[2]);
     const salt = Buffer.from(parts[3], 'base64');
     const originalHash = Buffer.from(parts[4], 'base64');
-    
-    // Hash the provided password with the same salt
-    const hash = crypto.pbkdf2Sync(password, salt, iterations, 64, 'sha512');
-    
+
+    // Hash the provided password with the same salt (async to avoid blocking main process)
+    const hash = await new Promise((resolve, reject) => {
+      crypto.pbkdf2(password, salt, iterations, 64, 'sha512', (err, key) => {
+        if (err) reject(err);
+        else resolve(key);
+      });
+    });
+
     // Compare hashes
     const isMatch = crypto.timingSafeEqual(originalHash, hash);
     
@@ -615,9 +625,12 @@ ipcMain.handle('start-api-server', async (event, port = 3000) => {
     // Store API key for display
     apiApp.locals.apiKey = API_KEY;
 
-    // CORS headers
+    // CORS headers — only allow localhost origins (not all origins)
     apiApp.use((req, res, next) => {
-      res.header('Access-Control-Allow-Origin', '*');
+      const origin = req.headers.origin;
+      if (origin && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+        res.header('Access-Control-Allow-Origin', origin);
+      }
       res.header('Access-Control-Allow-Headers', 'Content-Type, X-API-Key');
       res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
       next();
@@ -653,8 +666,7 @@ ipcMain.handle('start-api-server', async (event, port = 3000) => {
         authentication: {
           required: true,
           method: 'X-API-Key header',
-          apiKey: apiApp.locals.apiKey,
-          note: 'Include "X-API-Key: [your-key]" header in all API requests (except / and /api/health)'
+          note: 'The API key is shown in the Endcoder Pro UI when the server starts. Include it as "X-API-Key: <key>" in all API requests (except / and /api/health)'
         },
         endpoints: {
           'POST /api/encode': {
@@ -835,10 +847,14 @@ ipcMain.handle('start-api-server', async (event, port = 3000) => {
       });
     });
 
-    serverInstance = apiApp.listen(port, 'localhost', () => {
-      serverPort = port;
-      console.log(`API Server running on http://localhost:${port}`);
+    await new Promise((resolve, reject) => {
+      serverInstance = apiApp.listen(port, 'localhost');
+      serverInstance.once('listening', resolve);
+      serverInstance.once('error', reject);
     });
+
+    serverPort = port;
+    console.log(`API Server running on http://localhost:${port}`);
 
     return {
       success: true,
@@ -847,6 +863,7 @@ ipcMain.handle('start-api-server', async (event, port = 3000) => {
       message: `Server started on http://localhost:${port}`
     };
   } catch (error) {
+    serverInstance = null;
     return {
       success: false,
       error: error.message

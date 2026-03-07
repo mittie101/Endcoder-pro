@@ -28,7 +28,7 @@ class HistoryManager {
 
   addEntry(type, input, output, encoding, metadata = {}) {
     const entry = {
-      id: Date.now(),
+      id: `${Date.now()}-${Math.floor(Math.random() * 1e9)}`,
       timestamp: new Date().toISOString(),
       type: type, // 'encode' or 'decode'
       input: input.substring(0, 1000), // Store first 1000 chars
@@ -105,7 +105,7 @@ class HistoryManager {
     // Attach event listeners
     container.querySelectorAll('.history-restore').forEach(btn => {
       btn.addEventListener('click', (e) => {
-        const id = parseInt(e.target.dataset.id);
+        const id = e.target.dataset.id;
         const entry = this.restoreEntry(id);
         if (entry && window.app) {
           window.app.restoreFromHistory(entry);
@@ -115,7 +115,7 @@ class HistoryManager {
 
     container.querySelectorAll('.history-delete').forEach(btn => {
       btn.addEventListener('click', (e) => {
-        const id = parseInt(e.target.dataset.id);
+        const id = e.target.dataset.id;
         if (confirm('Delete this history entry?')) {
           this.deleteEntry(id);
         }
@@ -148,9 +148,12 @@ class HistoryManager {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `base64-pro-history-${Date.now()}.json`;
+    a.download = `endcoder-pro-history-${Date.now()}.json`;
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    // Defer revocation so the browser has time to start the download
+    setTimeout(() => URL.revokeObjectURL(url), 100);
   }
 
   importHistory(jsonData) {

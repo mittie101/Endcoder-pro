@@ -79,14 +79,20 @@ class App {
     return new Promise((resolve) => {
       if (typeof monaco !== 'undefined') {
         resolve();
-      } else {
-        const checkMonaco = setInterval(() => {
-          if (typeof monaco !== 'undefined') {
-            clearInterval(checkMonaco);
-            resolve();
-          }
-        }, 100);
+        return;
       }
+      let elapsed = 0;
+      const checkMonaco = setInterval(() => {
+        elapsed += 100;
+        if (typeof monaco !== 'undefined') {
+          clearInterval(checkMonaco);
+          resolve();
+        } else if (elapsed >= 30000) {
+          clearInterval(checkMonaco);
+          console.error('Monaco editor timed out after 30s');
+          resolve(); // unblock init rather than hanging forever
+        }
+      }, 100);
     });
   }
 
@@ -568,21 +574,22 @@ class App {
       
       const output = this.converter.decode(input, encoding);
       outputEditor.setValue(output);
-      
-      this.history.addEntry('decode', input, output, encoding, {
-        inputSize: input.length,
-        outputSize: output.length
-      });
-      
-      // Auto-format JSON
+
+      // Auto-format JSON before saving to history so the record matches what the user sees
+      let finalOutput = output;
       try {
         const json = JSON.parse(output);
-        const formatted = JSON.stringify(json, null, 2);
-        outputEditor.setValue(formatted);
+        finalOutput = JSON.stringify(json, null, 2);
+        outputEditor.setValue(finalOutput);
         monaco.editor.setModelLanguage(outputEditor.getModel(), 'json');
       } catch (e) {
         monaco.editor.setModelLanguage(outputEditor.getModel(), 'plaintext');
       }
+
+      this.history.addEntry('decode', input, finalOutput, encoding, {
+        inputSize: input.length,
+        outputSize: finalOutput.length
+      });
       
       this.ui.showSuccess('Decoded successfully');
       this.ui.updateStats();
@@ -802,7 +809,14 @@ class App {
     const editor = this.ui.getMonacoEditor('output');
     if (!editor) return;
     const output = editor.getValue();
-    const code = `data = b'${output.replace(/'/g, "\\'")}'`;
+    // Escape backslashes first, then single quotes, then other control characters
+    const escaped = output
+      .replace(/\\/g, '\\\\')
+      .replace(/'/g, "\\'")
+      .replace(/\r/g, '\\r')
+      .replace(/\n/g, '\\n')
+      .replace(/\t/g, '\\t');
+    const code = `data = b'${escaped}'`;
     navigator.clipboard.writeText(code);
     this.ui.showSuccess('Exported as Python bytes');
   }
@@ -849,11 +863,8 @@ class App {
   }
 
   updateMonacoTheme(theme) {
-    const editors = ['input', 'output', 'jwtPayload', 'diffLeft', 'diffRight'];
-    editors.forEach(editorId => {
-      const editor = this.ui.getMonacoEditor(editorId);
-      if (editor) monaco.editor.setTheme(theme);
-    });
+    // setTheme is global — call once, not once per editor
+    monaco.editor.setTheme(theme);
   }
 
   restoreFromHistory(entry) {
@@ -869,6 +880,15 @@ class App {
       this.ui.switchTab('encoder');
     }
   }
+}
+
+function escapeHtml(text) {
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 // Initialize app when DOM is ready
@@ -934,7 +954,7 @@ function initPasswordHashHandlers() {
           resultDiv.innerHTML = `
             <div class="success">
               <h3>Password Hashed</h3>
-              <p><strong>Algorithm:</strong> ${result.algorithm}</p>
+              <p><strong>Algorithm:</strong> ${escapeHtml(result.algorithm)}</p>
               <textarea id="hashResultText" readonly rows="3" style="width:100%; background:#1e1e1e; color:#fff;"></textarea>
               <button id="copyHashBtn" class="btn-small">Copy</button>
             </div>`;
@@ -945,10 +965,10 @@ function initPasswordHashHandlers() {
             window.ui.showSuccess('Copied');
           });
         } else {
-          resultDiv.innerHTML = `<div class="error">Error: ${result.error}</div>`;
+          resultDiv.innerHTML = `<div class="error">Error: ${escapeHtml(result.error)}</div>`;
         }
       } catch (error) {
-        resultDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+        resultDiv.innerHTML = `<div class="error">Error: ${escapeHtml(error.message)}</div>`;
       } finally {
         hashPasswordBtn.disabled = false;
       }
@@ -981,7 +1001,7 @@ function initPasswordHashHandlers() {
           resultDiv.innerHTML = '<div class="error"><h3>✗ Failed</h3><p>Password incorrect</p></div>';
         }
       } catch (error) {
-        resultDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+        resultDiv.innerHTML = `<div class="error">Error: ${escapeHtml(error.message)}</div>`;
       } finally {
         verifyPasswordBtn.disabled = false;
       }

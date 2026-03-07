@@ -26,6 +26,15 @@ class JWTHandler {
     }
   }
 
+  escapeHtml(text) {
+    return String(text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   parseJWT(token) {
     try {
       const parts = token.split('.');
@@ -81,24 +90,24 @@ class JWTHandler {
         resultDiv.innerHTML = `
           <div class="jwt-result ${result.valid ? 'valid' : 'invalid'}">
             <h3>${result.valid ? '✓ Token Valid' : '✗ Token Invalid'}</h3>
-            <p>${result.message}</p>
-            ${result.error ? `<p class="error-detail">${result.error}</p>` : ''}
-            
+            <p>${this.escapeHtml(result.message)}</p>
+            ${result.error ? `<p class="error-detail">${this.escapeHtml(result.error)}</p>` : ''}
+
             <div class="jwt-section">
               <h4>Header</h4>
-              <pre>${JSON.stringify(parsed.header, null, 2)}</pre>
+              <pre>${this.escapeHtml(JSON.stringify(parsed.header, null, 2))}</pre>
             </div>
-            
+
             <div class="jwt-section">
               <h4>Payload</h4>
-              <pre>${JSON.stringify(parsed.payload, null, 2)}</pre>
+              <pre>${this.escapeHtml(JSON.stringify(parsed.payload, null, 2))}</pre>
             </div>
-            
+
             <div class="jwt-section">
               <h4>Signature</h4>
-              <pre>${parsed.signature}</pre>
+              <pre>${this.escapeHtml(parsed.signature)}</pre>
             </div>
-            
+
             ${this.formatTokenInfo(parsed)}
           </div>
         `;
@@ -108,7 +117,7 @@ class JWTHandler {
         resultDiv.innerHTML = `
           <div class="jwt-result invalid">
             <h3>✗ Verification Failed</h3>
-            <p>${result.error}</p>
+            <p>${this.escapeHtml(result.error)}</p>
           </div>
         `;
         this.ui.showError('Token verification failed');
@@ -117,7 +126,7 @@ class JWTHandler {
       resultDiv.innerHTML = `
         <div class="jwt-result invalid">
           <h3>✗ Error</h3>
-          <p>${error.message}</p>
+          <p>${this.escapeHtml(error.message)}</p>
         </div>
       `;
       this.ui.showError(error.message);
@@ -161,31 +170,38 @@ class JWTHandler {
         outputDiv.innerHTML = `
           <div class="jwt-result valid">
             <h3>✓ Token Generated</h3>
-            
+
             <div class="jwt-section">
               <h4>JWT Token</h4>
-              <textarea readonly class="jwt-token-output">${result.token}</textarea>
-              <button class="copy-btn" onclick="navigator.clipboard.writeText('${result.token}').then(() => window.ui.showSuccess('Token copied to clipboard'))">Copy Token</button>
+              <textarea readonly class="jwt-token-output" id="jwtSignedToken"></textarea>
+              <button class="copy-btn" id="copySignedTokenBtn">Copy Token</button>
             </div>
-            
+
             <div class="jwt-section">
               <h4>Header</h4>
-              <pre>${JSON.stringify(result.decoded.header, null, 2)}</pre>
+              <pre>${this.escapeHtml(JSON.stringify(result.decoded.header, null, 2))}</pre>
             </div>
-            
+
             <div class="jwt-section">
               <h4>Payload</h4>
-              <pre>${JSON.stringify(result.decoded.payload, null, 2)}</pre>
+              <pre>${this.escapeHtml(JSON.stringify(result.decoded.payload, null, 2))}</pre>
             </div>
           </div>
         `;
+
+        // Set token value and attach listener safely (avoids inline onclick injection)
+        document.getElementById('jwtSignedToken').value = result.token;
+        document.getElementById('copySignedTokenBtn').addEventListener('click', () => {
+          navigator.clipboard.writeText(result.token)
+            .then(() => window.ui.showSuccess('Token copied to clipboard'));
+        });
 
         this.ui.showSuccess('Token generated successfully');
       } else {
         outputDiv.innerHTML = `
           <div class="jwt-result invalid">
             <h3>✗ Generation Failed</h3>
-            <p>${result.error}</p>
+            <p>${this.escapeHtml(result.error)}</p>
           </div>
         `;
         this.ui.showError('Token generation failed');
@@ -194,7 +210,7 @@ class JWTHandler {
       outputDiv.innerHTML = `
         <div class="jwt-result invalid">
           <h3>✗ Error</h3>
-          <p>${error.message}</p>
+          <p>${this.escapeHtml(error.message)}</p>
         </div>
       `;
       this.ui.showError(error.message);
@@ -222,22 +238,22 @@ class JWTHandler {
       resultDiv.innerHTML = `
         <div class="jwt-result">
           <h3>Token Decoded (No Verification)</h3>
-          
+
           <div class="jwt-section">
             <h4>Header</h4>
-            <pre>${JSON.stringify(parsed.header, null, 2)}</pre>
+            <pre>${this.escapeHtml(JSON.stringify(parsed.header, null, 2))}</pre>
           </div>
-          
+
           <div class="jwt-section">
             <h4>Payload</h4>
-            <pre>${JSON.stringify(parsed.payload, null, 2)}</pre>
+            <pre>${this.escapeHtml(JSON.stringify(parsed.payload, null, 2))}</pre>
           </div>
-          
+
           <div class="jwt-section">
             <h4>Signature</h4>
-            <pre>${parsed.signature}</pre>
+            <pre>${this.escapeHtml(parsed.signature)}</pre>
           </div>
-          
+
           ${this.formatTokenInfo(parsed)}
         </div>
       `;
@@ -247,7 +263,7 @@ class JWTHandler {
       resultDiv.innerHTML = `
         <div class="jwt-result invalid">
           <h3>✗ Decode Failed</h3>
-          <p>${error.message}</p>
+          <p>${this.escapeHtml(error.message)}</p>
         </div>
       `;
       this.ui.showError(error.message);
@@ -275,15 +291,18 @@ class JWTHandler {
     }
 
     if (parsed.payload.iss) {
-      info += `<p><strong>Issuer:</strong> ${parsed.payload.iss}</p>`;
+      info += `<p><strong>Issuer:</strong> ${this.escapeHtml(parsed.payload.iss)}</p>`;
     }
 
     if (parsed.payload.sub) {
-      info += `<p><strong>Subject:</strong> ${parsed.payload.sub}</p>`;
+      info += `<p><strong>Subject:</strong> ${this.escapeHtml(parsed.payload.sub)}</p>`;
     }
 
     if (parsed.payload.aud) {
-      info += `<p><strong>Audience:</strong> ${Array.isArray(parsed.payload.aud) ? parsed.payload.aud.join(', ') : parsed.payload.aud}</p>`;
+      const aud = Array.isArray(parsed.payload.aud)
+        ? parsed.payload.aud.map(a => this.escapeHtml(a)).join(', ')
+        : this.escapeHtml(parsed.payload.aud);
+      info += `<p><strong>Audience:</strong> ${aud}</p>`;
     }
 
     info += '</div>';
