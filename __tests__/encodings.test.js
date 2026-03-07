@@ -332,6 +332,20 @@ describe('Binary', () => {
     const input = 'Hello';
     expect(Encodings.decodeBinary(Encodings.encodeBinary(input))).toBe(input);
   });
+
+  test('decode rejects non-multiple-of-8 bit string', () => {
+    expect(() => Encodings.decodeBinary('101')).toThrow('multiple of 8');
+    expect(() => Encodings.decodeBinary('0000000')).toThrow('multiple of 8'); // 7 bits
+    expect(() => Encodings.decodeBinary('000000000')).toThrow('multiple of 8'); // 9 bits
+  });
+
+  test('decode accepts exactly 8 bits', () => {
+    expect(() => Encodings.decodeBinary('01000001')).not.toThrow();
+  });
+
+  test('decode accepts space-separated 8-bit groups', () => {
+    expect(Encodings.decodeBinary('01000001 01000010')).toBe('AB');
+  });
 });
 
 // ============================================================================
@@ -350,6 +364,26 @@ describe('Morse Code', () => {
   test('encode with numbers', () => {
     const encoded = Encodings.encodeMorse('A1');
     expect(encoded).toBe('.- .----');
+  });
+
+  test('skips unknown characters instead of passing them through', () => {
+    const result = Encodings.encodeMorse('A@B');
+    expect(result).toContain('.-');   // A
+    expect(result).toContain('-...'); // B
+    expect(result).not.toContain('@');
+  });
+
+  test('encodes space as word separator /', () => {
+    expect(Encodings.encodeMorse('A B')).toBe('.- / -...');
+  });
+
+  test('round-trip multi-word sentence', () => {
+    const input = 'HELLO WORLD';
+    expect(Encodings.decodeMorse(Encodings.encodeMorse(input))).toBe(input);
+  });
+
+  test('unknown-only input produces empty string', () => {
+    expect(Encodings.encodeMorse('@#$')).toBe('');
   });
 });
 

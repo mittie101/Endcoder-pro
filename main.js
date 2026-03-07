@@ -853,14 +853,14 @@ ipcMain.handle('start-api-server', async (event, port = 3000) => {
       serverInstance.once('error', reject);
     });
 
-    serverPort = port;
-    console.log(`API Server running on http://localhost:${port}`);
+    serverPort = serverInstance.address().port;
+    console.log(`API Server running on http://localhost:${serverPort}`);
 
     return {
       success: true,
-      port: port,
+      port: serverPort,
       apiKey: API_KEY,
-      message: `Server started on http://localhost:${port}`
+      message: `Server started on http://localhost:${serverPort}`
     };
   } catch (error) {
     serverInstance = null;

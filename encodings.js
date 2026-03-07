@@ -658,7 +658,10 @@ function decodeBinary(input) {
     if (cleaned && !/^[01]+$/.test(cleaned)) {
         throw new Error('Invalid binary string: only 0 and 1 allowed');
     }
-    const bytes = cleaned.match(/.{1,8}/g) || [];
+    if (cleaned.length % 8 !== 0) {
+        throw new Error('Invalid binary string: length must be a multiple of 8 bits');
+    }
+    const bytes = cleaned.match(/.{8}/g) || [];
     return new TextDecoder().decode(
         new Uint8Array(bytes.map(b => parseInt(b, 2)))
     );
@@ -683,7 +686,8 @@ function encodeMorse(input) {
     if (typeof input !== 'string') throw new Error('Input must be a string');
     return input.toUpperCase()
         .split('')
-        .map(char => MORSE_CODE[char] || char)
+        .filter(char => MORSE_CODE[char] !== undefined)
+        .map(char => MORSE_CODE[char])
         .join(' ');
 }
 
