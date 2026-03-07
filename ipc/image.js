@@ -1,6 +1,8 @@
 const { ipcMain } = require('electron');
 const fs = require('fs').promises;
 const { allowedPaths } = require('../main/state');
+const { Semaphore } = require('../main/semaphore');
+const { withRetry } = require('../main/retry');
 
 let sharp;
 try {
@@ -10,6 +12,9 @@ try {
     console.warn('sharp not available - image optimization disabled');
 }
 
+// Cap concurrent image operations to prevent memory spikes during parallel use
+const imageSemaphore = new Semaphore(2);
+
 function register() {
     ipcMain.handle('optimize-image', async (event, filePath, options) => {
         if (!filePath || !allowedPaths.has(filePath)) {
@@ -18,41 +23,47 @@ function register() {
         if (!sharp) {
             return { success: false, error: 'sharp library not available. Install with: npm install sharp' };
         }
+
+        await imageSemaphore.acquire();
         try {
-            const { width, height, format, quality } = options;
-            const stats = await fs.stat(filePath);
-            const originalSize = stats.size;
-            let image = sharp(filePath);
+            return await withRetry(async () => {
+                const { width, height, format, quality } = options;
+                const stats = await fs.stat(filePath);
+                const originalSize = stats.size;
+                let image = sharp(filePath);
 
-            if (width || height) {
-                image = image.resize(width || null, height || null, { fit: 'inside' });
-            }
+                if (width || height) {
+                    image = image.resize(width || null, height || null, { fit: 'inside' });
+                }
 
-            let outputFormat = (format || 'jpeg').toLowerCase();
-            const qualityVal = quality || 80;
+                let outputFormat = (format || 'jpeg').toLowerCase();
+                const qualityVal = quality || 80;
 
-            switch (outputFormat) {
-                case 'png':  image = image.png({ quality: qualityVal }); break;
-                case 'webp': image = image.webp({ quality: qualityVal }); break;
-                case 'avif': image = image.avif({ quality: qualityVal }); break;
-                default:
-                    outputFormat = 'jpeg';
-                    image = image.jpeg({ quality: qualityVal });
-            }
+                switch (outputFormat) {
+                    case 'png':  image = image.png({ quality: qualityVal }); break;
+                    case 'webp': image = image.webp({ quality: qualityVal }); break;
+                    case 'avif': image = image.avif({ quality: qualityVal }); break;
+                    default:
+                        outputFormat = 'jpeg';
+                        image = image.jpeg({ quality: qualityVal });
+                }
 
-            const buffer = await image.toBuffer();
-            const metadata = await sharp(buffer).metadata();
-            return {
-                success: true,
-                buffer: buffer.toString('base64'),
-                format: outputFormat,
-                width: metadata.width,
-                height: metadata.height,
-                size: buffer.length,
-                originalSize
-            };
+                const buffer = await image.toBuffer();
+                const metadata = await sharp(buffer).metadata();
+                return {
+                    success: true,
+                    buffer: buffer.toString('base64'),
+                    format: outputFormat,
+                    width: metadata.width,
+                    height: metadata.height,
+                    size: buffer.length,
+                    originalSize
+                };
+            });
         } catch (error) {
             return { success: false, error: error.message };
+        } finally {
+            imageSemaphore.release();
         }
     });
 }

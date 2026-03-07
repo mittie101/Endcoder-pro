@@ -1,3 +1,5 @@
+const { withRetry } = require('./retry');
+
 function setup(getWindow) {
     let autoUpdater;
     try {
@@ -35,7 +37,8 @@ function setup(getWindow) {
         if (result.response === 0) autoUpdater.quitAndInstall();
     });
 
-    autoUpdater.checkForUpdates().catch(() => {});
+    // Retry the update check up to 3 times with exponential back-off (network may be unavailable at startup)
+    withRetry(() => autoUpdater.checkForUpdates(), 3, 5000).catch(() => {});
 }
 
 module.exports = { setup };

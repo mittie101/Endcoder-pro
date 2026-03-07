@@ -1,5 +1,7 @@
 const { ipcMain } = require('electron');
 const crypto = require('crypto');
+const cfg = require('../main/config');
+const { Semaphore } = require('../main/semaphore');
 
 let bcrypt;
 try {
@@ -17,39 +19,66 @@ try {
     console.error('✗ argon2 not available:', e.message);
 }
 
+// bcrypt and argon2 are CPU-bound — limit to 1 concurrent hash to protect the main process
+const hashSemaphore = new Semaphore(1);
+
 function register() {
-    ipcMain.handle('hash-password-bcrypt', async (event, password, rounds = 10) => {
+    ipcMain.handle('hash-password-bcrypt', async (event, password, rounds = cfg.BCRYPT_DEFAULT_ROUNDS) => {
         if (!bcrypt) return { success: false, error: 'bcrypt not available. Run install-password-hash.bat or use PBKDF2 fallback.', fallback: true };
+        await hashSemaphore.acquire();
         try {
             const hash = await bcrypt.hash(password, rounds);
             return { success: true, hash, algorithm: 'bcrypt', rounds };
-        } catch (error) { return { success: false, error: error.message }; }
+        } catch (error) {
+            return { success: false, error: error.message };
+        } finally {
+            hashSemaphore.release();
+        }
     });
 
     ipcMain.handle('verify-password-bcrypt', async (event, password, hash) => {
         if (!bcrypt) return { success: false, error: 'bcrypt not available. Run install-password-hash.bat', fallback: true };
+        await hashSemaphore.acquire();
         try {
             return { success: true, match: await bcrypt.compare(password, hash) };
-        } catch (error) { return { success: false, error: error.message }; }
+        } catch (error) {
+            return { success: false, error: error.message };
+        } finally {
+            hashSemaphore.release();
+        }
     });
 
     ipcMain.handle('hash-password-argon2', async (event, password, options = {}) => {
         if (!argon2) return { success: false, error: 'argon2 not available. Run install-password-hash.bat or use PBKDF2 fallback.', fallback: true };
+        const {
+            memoryCost = cfg.ARGON2_DEFAULT_MEMORY_KB,
+            timeCost   = cfg.ARGON2_DEFAULT_TIME_COST,
+            parallelism = cfg.ARGON2_DEFAULT_PARALLELISM
+        } = options;
+        await hashSemaphore.acquire();
         try {
-            const { memoryCost = 65536, timeCost = 3, parallelism = 4 } = options;
             const hash = await argon2.hash(password, { type: argon2.argon2id, memoryCost, timeCost, parallelism });
             return { success: true, hash, algorithm: 'argon2id', options: { memoryCost, timeCost, parallelism } };
-        } catch (error) { return { success: false, error: error.message }; }
+        } catch (error) {
+            return { success: false, error: error.message };
+        } finally {
+            hashSemaphore.release();
+        }
     });
 
     ipcMain.handle('verify-password-argon2', async (event, password, hash) => {
         if (!argon2) return { success: false, error: 'argon2 not available. Run install-password-hash.bat', fallback: true };
+        await hashSemaphore.acquire();
         try {
             return { success: true, match: await argon2.verify(hash, password) };
-        } catch (error) { return { success: false, error: error.message }; }
+        } catch (error) {
+            return { success: false, error: error.message };
+        } finally {
+            hashSemaphore.release();
+        }
     });
 
-    ipcMain.handle('hash-password-pbkdf2', async (event, password, iterations = 100000) => {
+    ipcMain.handle('hash-password-pbkdf2', async (event, password, iterations = cfg.PBKDF2_DEFAULT_ITERATIONS) => {
         try {
             const salt = crypto.randomBytes(16);
             const hash = await new Promise((resolve, reject) => {

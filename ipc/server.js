@@ -1,5 +1,6 @@
 const { ipcMain } = require('electron');
 const crypto = require('crypto');
+const cfg = require('../main/config');
 
 let express, bodyParser;
 try {
@@ -18,7 +19,7 @@ let serverInstance = null;
 let serverPort = 3000;
 
 function register() {
-    ipcMain.handle('start-api-server', async (event, port = 3000) => {
+    ipcMain.handle('start-api-server', async (event, port = cfg.DEFAULT_SERVER_PORT) => {
         if (!express || !bodyParser) {
             return { success: false, error: 'Express not available. Install with: npm install express body-parser' };
         }
@@ -28,8 +29,8 @@ function register() {
             }
 
             const apiApp = express();
-            apiApp.use(bodyParser.json({ limit: '50mb' }));
-            apiApp.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
+            apiApp.use(bodyParser.json({ limit: cfg.BODY_LIMIT }));
+            apiApp.use(bodyParser.urlencoded({ extended: true, limit: cfg.BODY_LIMIT }));
 
             const API_KEY = process.env.ENDCODER_API_KEY || crypto.randomBytes(32).toString('hex');
             apiApp.locals.apiKey = API_KEY;

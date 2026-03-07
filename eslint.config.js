@@ -39,6 +39,7 @@ module.exports = [
         atob: 'readonly',
         Event: 'readonly',
         HTMLElement: 'readonly',
+        IntersectionObserver: 'readonly',
         // App globals
         Converter: 'readonly',
         UIHandler: 'readonly',

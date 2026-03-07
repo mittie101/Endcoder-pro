@@ -84,43 +84,57 @@ class HistoryManager {
       return;
     }
 
-    container.innerHTML = this.history.map(entry => `
-      <div class="history-item" data-id="${entry.id}">
-        <div class="history-header">
-          <span class="history-type ${entry.type}">${entry.type.toUpperCase()}</span>
-          <span class="history-encoding">${entry.encoding}</span>
-          <span class="history-time">${this.formatTimestamp(entry.timestamp)}</span>
-        </div>
-        <div class="history-preview">
-          <div class="preview-input">${this.escapeHtml(entry.input.substring(0, 50))}${entry.input.length > 50 ? '...' : ''}</div>
-          <div class="preview-arrow">→</div>
-          <div class="preview-output">${this.escapeHtml(entry.output.substring(0, 50))}${entry.output.length > 50 ? '...' : ''}</div>
-        </div>
-        <div class="history-actions">
-          <button class="history-restore" data-id="${entry.id}">Restore</button>
-          <button class="history-delete" data-id="${entry.id}">Delete</button>
-        </div>
+    // Render lightweight placeholders first — IntersectionObserver hydrates each item
+    // only when it scrolls into view, keeping initial render fast for large histories.
+    container.innerHTML = this.history.map(entry =>
+      `<div class="history-item history-item--pending" data-id="${entry.id}"></div>`
+    ).join('');
+
+    if (typeof IntersectionObserver === 'undefined') {
+      // Fallback for environments without IntersectionObserver (e.g. unit tests, old Chromium)
+      container.querySelectorAll('.history-item--pending').forEach(el => {
+        const entry = this.history.find(e => e.id === el.dataset.id);
+        if (entry) this._hydrateItem(el, entry);
+      });
+      return;
+    }
+
+    const observer = new IntersectionObserver((entries, obs) => {
+      entries.forEach(({ target, isIntersecting }) => {
+        if (!isIntersecting) return;
+        const entry = this.history.find(e => e.id === target.dataset.id);
+        if (entry) this._hydrateItem(target, entry);
+        obs.unobserve(target);
+      });
+    }, { rootMargin: '200px' }); // pre-load 200 px before entering viewport
+
+    container.querySelectorAll('.history-item--pending').forEach(el => observer.observe(el));
+  }
+
+  _hydrateItem(el, entry) {
+    el.classList.remove('history-item--pending');
+    el.innerHTML = `
+      <div class="history-header">
+        <span class="history-type ${entry.type}">${entry.type.toUpperCase()}</span>
+        <span class="history-encoding">${entry.encoding}</span>
+        <span class="history-time">${this.formatTimestamp(entry.timestamp)}</span>
       </div>
-    `).join('');
-
-    // Attach event listeners
-    container.querySelectorAll('.history-restore').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const id = e.target.dataset.id;
-        const entry = this.restoreEntry(id);
-        if (entry && window.app) {
-          window.app.restoreFromHistory(entry);
-        }
-      });
+      <div class="history-preview">
+        <div class="preview-input">${this.escapeHtml(entry.input.substring(0, 50))}${entry.input.length > 50 ? '...' : ''}</div>
+        <div class="preview-arrow">→</div>
+        <div class="preview-output">${this.escapeHtml(entry.output.substring(0, 50))}${entry.output.length > 50 ? '...' : ''}</div>
+      </div>
+      <div class="history-actions">
+        <button class="history-restore" data-id="${entry.id}">Restore</button>
+        <button class="history-delete" data-id="${entry.id}">Delete</button>
+      </div>
+    `;
+    el.querySelector('.history-restore').addEventListener('click', () => {
+      const restored = this.restoreEntry(entry.id);
+      if (restored && window.app) window.app.restoreFromHistory(restored);
     });
-
-    container.querySelectorAll('.history-delete').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const id = e.target.dataset.id;
-        if (confirm('Delete this history entry?')) {
-          this.deleteEntry(id);
-        }
-      });
+    el.querySelector('.history-delete').addEventListener('click', () => {
+      if (confirm('Delete this history entry?')) this.deleteEntry(entry.id);
     });
   }
 

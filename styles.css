@@ -289,6 +289,15 @@ textarea { resize: vertical; width: 100%; font-family: 'Consolas', 'Monaco', mon
     z-index: 1000;
 }
 
+/* History lazy-load placeholder — sized to prevent layout shift during hydration */
+.history-item--pending {
+    min-height: 80px;
+    background: #1a1f2e;
+    border-radius: 6px;
+    border: 1px solid #2a3f5f;
+    margin-bottom: 10px;
+}
+
 /* Light Theme */
 body[data-theme="light"] { background: #f5f7fa; color: #2c3e50; }
 body[data-theme="light"] .app-header, body[data-theme="light"] .tabs, body[data-theme="light"] .panel-header, body[data-theme="light"] .stats-bar { background: #ffffff; border-color: #3498db; }

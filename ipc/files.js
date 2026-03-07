@@ -3,6 +3,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const { getWindow } = require('../main/window');
 const { allowedPaths } = require('../main/state');
+const { withRetry } = require('../main/retry');
 
 function register() {
     ipcMain.handle('select-file', async () => {
@@ -27,15 +28,17 @@ function register() {
             return { success: false, error: 'File access not permitted' };
         }
         try {
-            const stats = await fs.stat(filePath);
-            const buffer = await fs.readFile(filePath);
-            return {
-                success: true,
-                buffer: buffer.toString('base64'),
-                size: stats.size,
-                name: path.basename(filePath),
-                path: filePath
-            };
+            return await withRetry(async () => {
+                const stats = await fs.stat(filePath);
+                const buffer = await fs.readFile(filePath);
+                return {
+                    success: true,
+                    buffer: buffer.toString('base64'),
+                    size: stats.size,
+                    name: path.basename(filePath),
+                    path: filePath
+                };
+            });
         } catch (error) {
             return { success: false, error: error.message };
         }
