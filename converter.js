@@ -29,6 +29,16 @@ class Converter {
           return this.encodings.encodeQuotedPrintable(input);
         case 'percent':
           return this.encodings.encodePercent(input);
+        case 'rot13':
+          return this.encodings.encodeROT13(input);
+        case 'caesar':
+          return this.encodings.encodeCaesar(input);
+        case 'atbash':
+          return this.encodings.encodeAtbash(input);
+        case 'html-entities':
+          return this.encodings.encodeHTMLEntities(input);
+        case 'morse':
+          return this.encodings.encodeMorse(input);
         default:
           throw new Error('Unknown encoding: ' + encoding);
       }
@@ -69,6 +79,16 @@ class Converter {
           return this.encodings.decodeQuotedPrintable(input);
         case 'percent':
           return this.encodings.decodePercent(input);
+        case 'rot13':
+          return this.encodings.decodeROT13(input);
+        case 'caesar':
+          return this.encodings.decodeCaesar(input);
+        case 'atbash':
+          return this.encodings.decodeAtbash(input);
+        case 'html-entities':
+          return this.encodings.decodeHTMLEntities(input);
+        case 'morse':
+          return this.encodings.decodeMorse(input);
         default:
           throw new Error('Unknown encoding: ' + encoding);
       }

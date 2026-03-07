@@ -351,7 +351,7 @@ class App {
               'success'
             );
             // Auto-select the detected encoding in the dropdown
-            const encodingSelect = document.getElementById('encodingType');
+            const encodingSelect = document.getElementById('encodingSelect');
             if (encodingSelect) {
               const option = Array.from(encodingSelect.options).find(
                 (opt) => opt.value.toLowerCase() === detected.toLowerCase()

@@ -157,7 +157,7 @@ function createMenu() {
             dialog.showMessageBox(mainWindow, {
               type: 'info',
               title: 'About Endcoder Pro',
-              message: 'Endcoder Pro v3.0.0',
+              message: 'Endcoder Pro v3.1.0',
               detail: 'Professional encoding/decoding tool with Monaco Editor, JWT verification, image optimization, and developer API.'
             });
           }
@@ -285,6 +285,10 @@ ipcMain.handle('save-file', async (event, data, defaultName = 'output.txt') => {
 
 // Image optimization with sharp (replaced Jimp for smaller bundle + WebP/AVIF support)
 ipcMain.handle('optimize-image', async (event, filePath, options) => {
+  if (!filePath || !allowedPaths.has(filePath)) {
+    return { success: false, error: 'File access not permitted' };
+  }
+
   if (!sharp) {
     return {
       success: false,
@@ -671,7 +675,7 @@ ipcMain.handle('start-api-server', async (event, port = 3000) => {
     apiApp.get('/', (req, res) => {
       res.json({
         name: 'Endcoder Pro API',
-        version: '3.0.0',
+        version: '3.1.0',
         description: 'Local REST API for encoding/decoding operations',
         authentication: {
           required: true,
@@ -852,7 +856,7 @@ ipcMain.handle('start-api-server', async (event, port = 3000) => {
     apiApp.get('/api/health', (req, res) => {
       res.json({
         status: 'ok',
-        version: '3.0.0',
+        version: '3.1.0',
         uptime: process.uptime()
       });
     });

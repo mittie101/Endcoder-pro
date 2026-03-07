@@ -2,6 +2,21 @@
 
 All notable changes to Endcoder Pro will be documented in this file.
 
+## [3.1.0] - 2026-03-07
+
+### Added
+- ROT13, Caesar cipher, Atbash, HTML Entities, and Morse Code encodings wired into encoder/decoder
+- New encoding options visible in the main encoding dropdown
+
+### Fixed
+- Paste auto-detect no longer targets wrong dropdown element (`encodingType` → `encodingSelect`)
+- `optimize-image` IPC handler now enforces `allowedPaths` check (security parity with `read-file`)
+- `read-file` test now correctly populates `allowedPaths` before calling the handler
+
+### Changed
+- `electron-updater` publish target configured for GitHub Releases
+- Version bumped to 3.1.0
+
 ## [3.0.0] - 2024-11-01
 
 ### Added

@@ -108,11 +108,15 @@ describe('IPC: read-file', () => {
   const os = require('os');
   const fs = require('fs');
   const path = require('path');
+  const { dialog } = require('electron');
   let tmpFile;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tmpFile = path.join(os.tmpdir(), `endcoder-test-${Date.now()}.txt`);
     fs.writeFileSync(tmpFile, 'Hello Test');
+    // Add tmpFile to allowedPaths by simulating a select-file call
+    dialog.showOpenDialog.mockResolvedValueOnce({ canceled: false, filePaths: [tmpFile] });
+    await handlers['select-file'](fakeEvent);
   });
 
   afterEach(() => {
