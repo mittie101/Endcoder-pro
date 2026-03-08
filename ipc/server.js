@@ -8,8 +8,8 @@ let express, bodyParser;
 try {
     express = require('express');
     bodyParser = require('body-parser');
-} catch {
-    console.warn('Express not available - API server disabled');
+} catch (e) {
+    console.warn('Express not available - API server disabled:', e.code || e.message);
 }
 
 let jwt;

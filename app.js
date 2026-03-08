@@ -593,9 +593,11 @@ class App {
       });
       
       this.ui.showSuccess('Decoded successfully');
+      this.updateStatusBar(`Decoded ${input.length} characters to ${finalOutput.length} characters`);
       this.ui.updateStats();
     } catch (error) {
       this.ui.showError(error.message);
+      this.updateStatusBar('Error: ' + error.message);
       outputEditor.setValue('');
     } finally {
       this.ui.showLoading(false);
@@ -705,9 +707,14 @@ class App {
       const result = await window.electronAPI.optimizeImage(filePath, { width, height, format, quality });
 
       if (result.success) {
-        const editor = this.ui.getMonacoEditor('input');
-        editor.setValue(result.buffer);
-        this.ui.showSuccess(`Image optimized: ${result.format.toUpperCase()} (${this.ui.formatBytes(result.size)})`);
+        const defaultName = `optimized.${result.format}`;
+        const saved = await window.electronAPI.saveImage(result.buffer, defaultName, result.format);
+        if (saved.success) {
+          this.ui.showSuccess(`Saved: ${saved.path} (${this.ui.formatBytes(result.size)}, ${result.width}×${result.height})`);
+        } else if (saved.error !== 'Save cancelled') {
+          this.ui.showError('Optimized but failed to save: ' + saved.error);
+        }
+        // else: user cancelled the save dialog — silent
       } else {
         this.ui.showError('Optimization failed: ' + result.error);
       }

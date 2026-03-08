@@ -14,6 +14,7 @@ class UIHandler {
   }
 
   init() {
+    this._statsListenersRegistered = false;
     this.setupTabSwitching();
     this.setupThemeToggle();
     this.setupResizablePanes();
@@ -179,16 +180,20 @@ class UIHandler {
       }
     };
 
-    // Setup listeners
-    if (this.monacoEditors.input) {
-      this.monacoEditors.input.onDidChangeModelContent(updateInputStats);
-      updateInputStats();
+    // Register content-change listeners only once; subsequent calls just refresh the display
+    if (!this._statsListenersRegistered) {
+      if (this.monacoEditors.input) {
+        this.monacoEditors.input.onDidChangeModelContent(updateInputStats);
+      }
+      if (this.monacoEditors.output) {
+        this.monacoEditors.output.onDidChangeModelContent(updateOutputStats);
+      }
+      this._statsListenersRegistered = true;
     }
 
-    if (this.monacoEditors.output) {
-      this.monacoEditors.output.onDidChangeModelContent(updateOutputStats);
-      updateOutputStats();
-    }
+    // Always refresh the displayed values immediately
+    updateInputStats();
+    updateOutputStats();
   }
 
   showLoading(show = true) {

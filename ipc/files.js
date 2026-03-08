@@ -44,6 +44,26 @@ function register() {
         }
     });
 
+    ipcMain.handle('save-image', async (event, base64Data, defaultName, format) => {
+        const ext = (format || 'jpg').replace(/^\./, '');
+        const result = await dialog.showSaveDialog(getWindow(), {
+            defaultPath: defaultName || `optimized.${ext}`,
+            filters: [
+                { name: 'Image Files', extensions: ['jpg', 'jpeg', 'png', 'webp', 'avif'] },
+                { name: 'All Files',   extensions: ['*'] }
+            ]
+        });
+        if (!result.canceled && result.filePath) {
+            try {
+                await fs.writeFile(result.filePath, Buffer.from(base64Data, 'base64'));
+                return { success: true, path: result.filePath };
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        }
+        return { success: false, error: 'Save cancelled' };
+    });
+
     ipcMain.handle('save-file', async (event, data, defaultName = 'output.txt') => {
         const result = await dialog.showSaveDialog(getWindow(), {
             defaultPath: defaultName,

@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     selectFile: () => ipcRenderer.invoke('select-file'),
     readFile: (filePath) => ipcRenderer.invoke('read-file', filePath),
     saveFile: (data, defaultName) => ipcRenderer.invoke('save-file', data, defaultName),
+    saveImage: (base64Data, defaultName, format) => ipcRenderer.invoke('save-image', base64Data, defaultName, format),
 
     // Image optimization
     optimizeImage: (filePath, options) => ipcRenderer.invoke('optimize-image', filePath, options),

@@ -68,8 +68,11 @@ class AdvancedFeatures {
       if ((sanitized.includes('-') || sanitized.includes('_')) && !sanitized.includes('+') && !sanitized.includes('/')) {
         sanitized = sanitized.replace(/-/g, '+').replace(/_/g, '/');
       }
-      
-      while (sanitized.length % 4 !== 0) sanitized += '=';
+
+      // Only add Base64 padding if the result looks like Base64 (all chars are valid Base64)
+      if (/^[A-Za-z0-9+/]*$/.test(sanitized)) {
+        while (sanitized.length % 4 !== 0) sanitized += '=';
+      }
   
       editor.setValue(sanitized);
       this.ui.showSuccess('Input sanitized');

@@ -113,10 +113,14 @@ class HistoryManager {
 
   _hydrateItem(el, entry) {
     el.classList.remove('history-item--pending');
+    const safeType = this.escapeHtml(entry.type || '');
+    const safeEncoding = this.escapeHtml(entry.encoding || '');
+    // Strip everything except word chars and hyphens for use in class attributes
+    const typeClass = (entry.type || '').replace(/[^\w-]/g, '');
     el.innerHTML = `
       <div class="history-header">
-        <span class="history-type ${entry.type}">${entry.type.toUpperCase()}</span>
-        <span class="history-encoding">${entry.encoding}</span>
+        <span class="history-type ${typeClass}">${safeType.toUpperCase()}</span>
+        <span class="history-encoding">${safeEncoding}</span>
         <span class="history-time">${this.formatTimestamp(entry.timestamp)}</span>
       </div>
       <div class="history-preview">
