@@ -19,51 +19,50 @@ class App {
 
   async init() {
     console.log('Initializing Endcoder Pro v3.1...');
-    
-    // Initialize theme
-    this.initTheme();
-    
-    // Wait for Monaco to load
-    await this.waitForMonaco();
-    
-    // Initialize Monaco editors
-    this.initMonacoEditors();
-    
-    // Initialize UI
-    this.ui.init();
-    
-    // Initialize modules
-    this.jwtHandler.init();
-    this.diffTool.init();
-    this.advanced.init(); // Init advanced features
-    this.history.updateHistoryUI();
-    
-    // Setup event listeners
-    this.setupEventListeners();
-    
-    // Setup menu handlers
-    this.setupMenuHandlers();
-    
-    // Setup auto-detect on paste
-    this.setupPasteDetection();
 
-    // Setup drag and drop
-    this.setupDragAndDrop();
-    
-    // Setup tooltips
-    this.setupTooltips();
-    
-    // Initialize status bar
-    this.initStatusBar();
-    
-    // Check server status
+    this.initTheme();
+    await this.waitForMonaco();
+
+    // Monaco editors are required — abort with a visible banner if they fail
+    try {
+      this.initMonacoEditors();
+    } catch (error) {
+      console.error('Monaco editor failed to initialise:', error);
+      this._showInitError('Monaco editor failed to load. Please restart the application.');
+      return;
+    }
+
+    // Non-critical init steps — each isolated so one failure doesn't cascade
+    const steps = [
+      ['UI',             () => this.ui.init()],
+      ['JWT handler',    () => this.jwtHandler.init()],
+      ['Diff tool',      () => this.diffTool.init()],
+      ['Advanced',       () => this.advanced.init()],
+      ['History UI',     () => this.history.updateHistoryUI()],
+      ['Event listeners',() => this.setupEventListeners()],
+      ['Menu handlers',  () => this.setupMenuHandlers()],
+      ['Paste detection',() => this.setupPasteDetection()],
+      ['Drag & drop',    () => this.setupDragAndDrop()],
+      ['Tooltips',       () => this.setupTooltips()],
+      ['Status bar',     () => this.initStatusBar()],
+    ];
+
+    for (const [name, fn] of steps) {
+      try { fn(); } catch (e) { console.error(`Init step "${name}" failed:`, e); }
+    }
+
     await this.checkServerStatus();
-    
-    // Check password hash dependencies
     await this.checkPasswordHashDependencies();
-    
+
     console.log('Application initialized successfully');
     this.ui.showSuccess('Endcoder Pro ready');
+  }
+
+  _showInitError(message) {
+    const banner = document.createElement('div');
+    banner.className = 'init-error-banner';
+    banner.textContent = message;
+    document.body.prepend(banner);
   }
 
   async checkPasswordHashDependencies() {
@@ -450,7 +449,7 @@ class App {
         if (files.length === 0) return;
 
         const file = files[0];
-        const FILE_SIZE_MAX = 50 * 1024 * 1024;
+        const FILE_SIZE_MAX = window.RendererConfig.FILE_SIZE_MAX;
 
         if (file.size > FILE_SIZE_MAX) {
           this.ui.showError(`File too large (${this.ui.formatBytes(file.size)}). Maximum size is 50MB.`);
@@ -647,7 +646,7 @@ class App {
       const result = await window.electronAPI.readFile(filePath);
 
       if (result.success) {
-        const FILE_SIZE_WARNING = 10 * 1024 * 1024; // 10MB
+        const FILE_SIZE_WARNING = window.RendererConfig.FILE_SIZE_WARNING;
         if (result.size > FILE_SIZE_WARNING) {
           const proceed = confirm(`Large file (${this.ui.formatBytes(result.size)}). Proceed?`);
           if (!proceed) {

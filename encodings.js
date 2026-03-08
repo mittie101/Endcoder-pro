@@ -691,14 +691,14 @@ function encodeMorse(input) {
         .join(' ');
 }
 
-function decodeMorse(input) {
-    const reverseMorse = {};
-    for (const [char, code] of Object.entries(MORSE_CODE)) {
-        reverseMorse[code] = char;
-    }
+// Computed once at module load — avoids rebuilding on every decodeMorse() call
+const REVERSE_MORSE_CODE = Object.fromEntries(
+    Object.entries(MORSE_CODE).map(([char, code]) => [code, char])
+);
 
+function decodeMorse(input) {
     return input.split(' ')
-        .map(code => reverseMorse[code] || '')
+        .map(code => REVERSE_MORSE_CODE[code] || '')
         .join('');
 }
 

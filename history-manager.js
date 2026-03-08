@@ -11,7 +11,11 @@ class HistoryManager {
     try {
       const stored = localStorage.getItem('conversionHistory');
       if (stored) {
-        this.history = JSON.parse(stored);
+        const TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+        const cutoff = Date.now() - TTL_MS;
+        this.history = JSON.parse(stored).filter(
+          e => new Date(e.timestamp).getTime() > cutoff
+        );
       }
     } catch (error) {
       console.error('Failed to load history:', error);
