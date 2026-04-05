@@ -22,7 +22,14 @@ class App {
     console.log('Initializing Endcoder Pro v3.1...');
 
     this.initTheme();
-    await this.waitForMonaco();
+
+    try {
+      await this.waitForMonaco();
+    } catch (error) {
+      console.error('Monaco editor timed out:', error);
+      this._showInitError('Monaco editor failed to load. Please restart the application.');
+      return;
+    }
 
     // Monaco editors are required — abort with a visible banner if they fail
     try {
@@ -76,7 +83,7 @@ class App {
   }
 
   waitForMonaco() {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       if (typeof monaco !== 'undefined') {
         resolve();
         return;
@@ -89,8 +96,7 @@ class App {
           resolve();
         } else if (elapsed >= 30000) {
           clearInterval(checkMonaco);
-          console.error('Monaco editor timed out after 30s');
-          resolve(); // unblock init rather than hanging forever
+          reject(new Error('Monaco editor failed to load after 30s'));
         }
       }, 100);
     });
@@ -224,6 +230,12 @@ class App {
   }
 
   setupKeyboardShortcuts() {
+    if (this._keyboardAbortController) {
+      this._keyboardAbortController.abort();
+    }
+    this._keyboardAbortController = new AbortController();
+    const { signal } = this._keyboardAbortController;
+
     document.addEventListener('keydown', (e) => {
       // Ctrl+E - Encode
       if (e.ctrlKey && !e.shiftKey && e.key === 'e') {
@@ -255,7 +267,7 @@ class App {
         e.preventDefault();
         this.swapInputOutput();
       }
-    });
+    }, { signal });
   }
 
   swapInputOutput() {
@@ -283,7 +295,7 @@ class App {
     if (!encoding || !action) return;
 
     if (!this.pipelineSteps) this.pipelineSteps = [];
-    this.pipelineSteps.push({ encoding: encoding.value, action: action.value });
+    this.pipelineSteps.push({ id: crypto.randomUUID(), encoding: encoding.value, action: action.value });
     this.renderPipelineSteps();
   }
 
@@ -299,7 +311,7 @@ class App {
       removeBtn.textContent = 'x';
       removeBtn.style.cssText = 'background:none;border:none;color:#e74c3c;cursor:pointer;font-size:12px;padding:0 2px;';
       removeBtn.addEventListener('click', () => {
-        this.pipelineSteps.splice(i, 1);
+        this.pipelineSteps = this.pipelineSteps.filter(s => s.id !== step.id);
         this.renderPipelineSteps();
       });
       tag.appendChild(removeBtn);
@@ -411,11 +423,15 @@ class App {
   }
 
   setupMenuHandlers() {
+    if (this._menuUnsubscribers) {
+      this._menuUnsubscribers.forEach(unsub => unsub());
+    }
+    this._menuUnsubscribers = [];
     if (window.electronAPI) {
-      window.electronAPI.onMenuOpenFile(() => this.loadFile());
-      window.electronAPI.onMenuSaveOutput(() => this.saveOutput());
-      window.electronAPI.onStartServer(() => this.startServer());
-      window.electronAPI.onStopServer(() => this.stopServer());
+      this._menuUnsubscribers.push(window.electronAPI.onMenuOpenFile(() => this.loadFile()));
+      this._menuUnsubscribers.push(window.electronAPI.onMenuSaveOutput(() => this.saveOutput()));
+      this._menuUnsubscribers.push(window.electronAPI.onStartServer(() => this.startServer()));
+      this._menuUnsubscribers.push(window.electronAPI.onStopServer(() => this.stopServer()));
     }
   }
 
@@ -586,9 +602,9 @@ class App {
         const json = JSON.parse(output);
         finalOutput = JSON.stringify(json, null, 2);
         outputEditor.setValue(finalOutput);
-        monaco.editor.setModelLanguage(outputEditor.getModel(), 'json');
+        try { monaco.editor.setModelLanguage(outputEditor.getModel(), 'json'); } catch {}
       } catch {
-        monaco.editor.setModelLanguage(outputEditor.getModel(), 'plaintext');
+        try { monaco.editor.setModelLanguage(outputEditor.getModel(), 'plaintext'); } catch {}
       }
 
       this.history.addEntry('decode', input, finalOutput, encoding, {
@@ -628,8 +644,12 @@ class App {
     const editor = this.ui.getMonacoEditor('input');
     if (editor) {
       const text = editor.getValue();
-      await navigator.clipboard.writeText(text);
-      this.ui.showSuccess('Input copied to clipboard');
+      try {
+        await navigator.clipboard.writeText(text);
+        this.ui.showSuccess('Input copied to clipboard');
+      } catch {
+        this.ui.showError('Failed to copy to clipboard');
+      }
     }
   }
 
@@ -637,8 +657,12 @@ class App {
     const editor = this.ui.getMonacoEditor('output');
     if (editor) {
       const text = editor.getValue();
-      await navigator.clipboard.writeText(text);
-      this.ui.showSuccess('Output copied to clipboard');
+      try {
+        await navigator.clipboard.writeText(text);
+        this.ui.showSuccess('Output copied to clipboard');
+      } catch {
+        this.ui.showError('Failed to copy to clipboard');
+      }
     }
   }
 
@@ -657,7 +681,10 @@ class App {
       if (result.success) {
         const FILE_SIZE_WARNING = window.RendererConfig.FILE_SIZE_WARNING;
         if (result.size > FILE_SIZE_WARNING) {
-          const proceed = confirm(`Large file (${this.ui.formatBytes(result.size)}). Proceed?`);
+          const proceed = await window.electronAPI.showConfirmDialog(
+            'Large File Warning',
+            `This file is ${this.ui.formatBytes(result.size)}. Loading it may be slow. Proceed?`
+          );
           if (!proceed) {
             this.ui.showLoading(false);
             return;
@@ -672,9 +699,13 @@ class App {
         const fileName = (result.name || '').toLowerCase();
         const isBinaryPreview = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.avif', '.ico', '.pdf', '.zip', '.exe', '.dll'].some(ext => fileName.endsWith(ext));
 
-        if (isBinaryPreview && (editorName === 'diffLeft' || editorName === 'diffRight')) {
-          editor.setValue(result.buffer);
-          this.ui.showSuccess(`${label} loaded as base64: ${result.name}`);
+        if (isBinaryPreview) {
+          if (editorName === 'diffLeft' || editorName === 'diffRight') {
+            editor.setValue(result.buffer);
+            this.ui.showSuccess(`${label} loaded as base64: ${result.name}`);
+          } else {
+            this.ui.showError(`"${result.name}" is a binary file and cannot be loaded as text.`);
+          }
           return;
         }
 
@@ -685,6 +716,14 @@ class App {
           bytes[i] = binaryString.charCodeAt(i);
         }
         const decoded = new TextDecoder('utf-8').decode(bytes);
+
+        // Heuristic: excessive U+FFFD replacement characters indicate a binary file
+        const replacementCount = (decoded.match(/\uFFFD/g) || []).length;
+        if (replacementCount > 10 && replacementCount > decoded.length * 0.01) {
+          this.ui.showError(`"${result.name}" appears to be a binary file and cannot be loaded as text.`);
+          return;
+        }
+
         editor.setValue(decoded);
         this.ui.showSuccess(`${label} loaded: ${result.name}`);
       } else {
@@ -847,16 +886,19 @@ class App {
         document.getElementById('apiKeyDisplay').textContent = apiKey;
         document.getElementById('apiCurlDisplay').textContent = curlExample;
         document.getElementById('copyApiBaseUrlBtn').addEventListener('click', () => {
-          navigator.clipboard.writeText(baseUrl);
-          this.ui.showSuccess('Base URL copied');
+          navigator.clipboard.writeText(baseUrl)
+            .then(() => this.ui.showSuccess('Base URL copied'))
+            .catch(() => this.ui.showError('Clipboard access denied'));
         });
         document.getElementById('copyApiKeyBtn').addEventListener('click', () => {
-          navigator.clipboard.writeText(apiKey);
-          this.ui.showSuccess('API key copied');
+          navigator.clipboard.writeText(apiKey)
+            .then(() => this.ui.showSuccess('API key copied'))
+            .catch(() => this.ui.showError('Clipboard access denied'));
         });
         document.getElementById('copyApiCurlBtn').addEventListener('click', () => {
-          navigator.clipboard.writeText(curlExample);
-          this.ui.showSuccess('cURL example copied');
+          navigator.clipboard.writeText(curlExample)
+            .then(() => this.ui.showSuccess('cURL example copied'))
+            .catch(() => this.ui.showError('Clipboard access denied'));
         });
       } else {
         statusEl.textContent = running ? `Running on port ${port}` : 'Not running';
@@ -892,7 +934,7 @@ class App {
     this.exportBytes(b => `(byte)0x${b.toString(16).padStart(2, '0')}`, "byte[] data = new byte[] { ", " };", "Java");
   }
 
-  exportAsPython() {
+  async exportAsPython() {
     const editor = this.ui.getMonacoEditor('output');
     if (!editor) return;
     const output = editor.getValue();
@@ -904,11 +946,15 @@ class App {
       .replace(/\n/g, '\\n')
       .replace(/\t/g, '\\t');
     const code = `data = b'${escaped}'`;
-    navigator.clipboard.writeText(code);
-    this.ui.showSuccess('Exported as Python bytes');
+    try {
+      await navigator.clipboard.writeText(code);
+      this.ui.showSuccess('Exported as Python bytes');
+    } catch {
+      this.ui.showError('Failed to copy to clipboard');
+    }
   }
 
-  exportBytes(mapFn, prefix, suffix, lang) {
+  async exportBytes(mapFn, prefix, suffix, lang) {
     const editor = this.ui.getMonacoEditor('output');
     if (!editor) return;
     const output = editor.getValue();
@@ -918,8 +964,12 @@ class App {
     }
     const bytes = Array.from(new TextEncoder().encode(output)).map(mapFn).join(', ');
     const code = `${prefix}${bytes}${suffix}`;
-    navigator.clipboard.writeText(code);
-    this.ui.showSuccess(`Exported as ${lang} byte array`);
+    try {
+      await navigator.clipboard.writeText(code);
+      this.ui.showSuccess(`Exported as ${lang} byte array`);
+    } catch {
+      this.ui.showError('Failed to copy to clipboard');
+    }
   }
 
   clearHistory() {
@@ -963,19 +1013,14 @@ class App {
       outputEditor.setValue(entry.output);
       const encodingSelect = document.getElementById('encodingSelect');
       if (encodingSelect) encodingSelect.value = entry.encoding;
-      this.ui.showSuccess('Restored from history');
+      if (entry.truncated) {
+        this.ui.showNotification('Note: this entry was truncated for storage — full content is not available.', 'warning');
+      } else {
+        this.ui.showSuccess('Restored from history');
+      }
       this.ui.switchTab('encoder');
     }
   }
-}
-
-function escapeHtml(text) {
-  return String(text)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }
 
 // Initialize app when DOM is ready
@@ -1027,14 +1072,14 @@ function initPasswordHashHandlers() {
       try {
         let result;
         if (algorithm === 'bcrypt') {
-          const rounds = parseInt(document.getElementById('bcryptRounds').value) || 10;
+          const rounds = Math.max(4, Math.min(15, parseInt(document.getElementById('bcryptRounds').value) || 10));
           result = await window.electronAPI.hashPasswordBcrypt(password, rounds);
         } else if (algorithm === 'argon2') {
-          const memoryCost = parseInt(document.getElementById('argon2Memory').value) || 65536;
-          const timeCost = parseInt(document.getElementById('argon2Time').value) || 3;
+          const memoryCost = Math.max(1024, Math.min(524288, parseInt(document.getElementById('argon2Memory').value) || 65536));
+          const timeCost = Math.max(1, Math.min(10, parseInt(document.getElementById('argon2Time').value) || 3));
           result = await window.electronAPI.hashPasswordArgon2(password, { memoryCost, timeCost });
         } else if (algorithm === 'pbkdf2') {
-          const iterations = parseInt(document.getElementById('pbkdf2Iterations').value) || 100000;
+          const iterations = Math.max(10000, Math.min(2000000, parseInt(document.getElementById('pbkdf2Iterations').value) || 100000));
           result = await window.electronAPI.hashPasswordPBKDF2(password, iterations);
         }
         
@@ -1052,9 +1097,13 @@ function initPasswordHashHandlers() {
           hashResultText.scrollIntoView({ behavior: 'smooth', block: 'center' });
           hashResultText.focus();
           hashResultText.select();
-          document.getElementById('copyHashBtn').addEventListener('click', () => {
-            navigator.clipboard.writeText(result.hash);
-            window.ui.showSuccess('Copied');
+          document.getElementById('copyHashBtn').addEventListener('click', async () => {
+            try {
+              await navigator.clipboard.writeText(result.hash);
+              window.ui.showSuccess('Copied');
+            } catch {
+              window.ui.showError('Failed to copy to clipboard');
+            }
           });
         } else {
           resultDiv.innerHTML = `<div class="error">Error: ${escapeHtml(result.error)}</div>`;

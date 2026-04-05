@@ -10,6 +10,7 @@ const _styleNonce = _nonceArg ? _nonceArg.slice('--style-nonce='.length) : '';
 contextBridge.exposeInMainWorld('MonacoEnvironment', {
     nonce: _styleNonce,
     getWorkerUrl: function (_moduleId, _label) {
+        // All workers share the single bundled worker entry point
         return './vendor/editor.worker.bundle.js';
     }
 });
@@ -49,5 +50,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     onMenuSaveOutput:(cb) => { ipcRenderer.on('menu-save-output',cb); return () => ipcRenderer.removeListener('menu-save-output',cb); },
     onStartServer:   (cb) => { ipcRenderer.on('start-server',    cb); return () => ipcRenderer.removeListener('start-server',    cb); },
     onStopServer:    (cb) => { ipcRenderer.on('stop-server',     cb); return () => ipcRenderer.removeListener('stop-server',     cb); },
-    onUpdateReady:   (cb) => { ipcRenderer.on('update-ready',    cb); return () => ipcRenderer.removeListener('update-ready',    cb); }
+    onUpdateReady:   (cb) => { ipcRenderer.on('update-ready',    cb); return () => ipcRenderer.removeListener('update-ready',    cb); },
+
+    // Dialogs
+    showConfirmDialog: (title, message) => ipcRenderer.invoke('show-confirm-dialog', title, message),
 });

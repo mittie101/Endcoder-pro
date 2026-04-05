@@ -36,6 +36,12 @@ class DiffTool {
       return;
     }
 
+    const DIFF_SIZE_LIMIT = 500 * 1024; // 500 KB per side
+    if (left.length > DIFF_SIZE_LIMIT || right.length > DIFF_SIZE_LIMIT) {
+      this.ui.showError('Input too large for diff (max 500 KB per side)');
+      return;
+    }
+
     try {
       // Character-level comparison
       const charDiff = this.computeCharDiff(left, right);
@@ -94,7 +100,7 @@ class DiffTool {
         </div>
       `;
 
-      resultDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (resultDiv) resultDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
       this.ui.showSuccess('Comparison complete');
     } catch (error) {
       this.ui.showError('Comparison failed: ' + error.message);
@@ -242,8 +248,11 @@ class DiffTool {
   }
 
   escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    return String(text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 }

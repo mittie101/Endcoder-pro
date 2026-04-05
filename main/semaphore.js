@@ -23,8 +23,8 @@ class Semaphore {
 
     /** Release a slot; unblocks the next queued waiter if any. */
     release() {
-        this._count--;
-        if (this._queue.length > 0) {
+        if (this._count > 0) this._count--;
+        if (this._queue.length > 0 && this._count < this._max) {
             this._count++;
             this._queue.shift()();
         }

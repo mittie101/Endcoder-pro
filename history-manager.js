@@ -32,6 +32,7 @@ class HistoryManager {
   }
 
   addEntry(type, input, output, encoding, metadata = {}) {
+    const truncated = input.length > 1000 || output.length > 1000;
     const entry = {
       id: `${Date.now()}-${Math.floor(Math.random() * 1e9)}`,
       timestamp: new Date().toISOString(),
@@ -41,6 +42,7 @@ class HistoryManager {
       encoding: encoding,
       inputSize: input.length,
       outputSize: output.length,
+      truncated,
       metadata: metadata
     };
 
@@ -94,12 +96,30 @@ class HistoryManager {
       `<div class="history-item history-item--pending" data-id="${entry.id}"></div>`
     ).join('');
 
+    // Use event delegation — single listener handles all restore/delete clicks
+    container.onclick = (e) => {
+      const restoreBtn = e.target.closest('.history-restore');
+      const deleteBtn = e.target.closest('.history-delete');
+      if (restoreBtn) {
+        const id = restoreBtn.dataset.id;
+        const restored = this.restoreEntry(id);
+        if (restored && window.app) window.app.restoreFromHistory(restored);
+      } else if (deleteBtn) {
+        const id = deleteBtn.dataset.id;
+        if (confirm('Delete this history entry?')) this.deleteEntry(id);
+      }
+    };
+
     if (typeof IntersectionObserver === 'undefined') {
-      // Fallback for environments without IntersectionObserver (e.g. unit tests, old Chromium)
-      container.querySelectorAll('.history-item--pending').forEach(el => {
-        const entry = this.history.find(e => e.id === el.dataset.id);
-        if (entry) this._hydrateItem(el, entry);
-      });
+      // Fallback: batch-render using requestAnimationFrame to avoid blocking the main thread
+      const pending = Array.from(container.querySelectorAll('.history-item--pending'));
+      const hydrateBatch = (items, i = 0) => {
+        if (i >= items.length) return;
+        const entry = this.history.find(e => e.id === items[i].dataset.id);
+        if (entry) this._hydrateItem(items[i], entry);
+        requestAnimationFrame(() => hydrateBatch(items, i + 1));
+      };
+      hydrateBatch(pending);
       return;
     }
 
@@ -117,8 +137,8 @@ class HistoryManager {
 
   _hydrateItem(el, entry) {
     el.classList.remove('history-item--pending');
-    const safeType = this.escapeHtml(entry.type || '');
-    const safeEncoding = this.escapeHtml(entry.encoding || '');
+    const safeType = escapeHtml(entry.type || '');
+    const safeEncoding = escapeHtml(entry.encoding || '');
     // Strip everything except word chars and hyphens for use in class attributes
     const typeClass = (entry.type || '').replace(/[^\w-]/g, '');
     el.innerHTML = `
@@ -128,22 +148,15 @@ class HistoryManager {
         <span class="history-time">${this.formatTimestamp(entry.timestamp)}</span>
       </div>
       <div class="history-preview">
-        <div class="preview-input">${this.escapeHtml(entry.input.substring(0, 50))}${entry.input.length > 50 ? '...' : ''}</div>
+        <div class="preview-input">${escapeHtml(entry.input.substring(0, 50))}${entry.input.length > 50 ? '...' : ''}</div>
         <div class="preview-arrow">→</div>
-        <div class="preview-output">${this.escapeHtml(entry.output.substring(0, 50))}${entry.output.length > 50 ? '...' : ''}</div>
+        <div class="preview-output">${escapeHtml(entry.output.substring(0, 50))}${entry.output.length > 50 ? '...' : ''}</div>
       </div>
       <div class="history-actions">
         <button class="history-restore" data-id="${entry.id}">Restore</button>
         <button class="history-delete" data-id="${entry.id}">Delete</button>
       </div>
     `;
-    el.querySelector('.history-restore').addEventListener('click', () => {
-      const restored = this.restoreEntry(entry.id);
-      if (restored && window.app) window.app.restoreFromHistory(restored);
-    });
-    el.querySelector('.history-delete').addEventListener('click', () => {
-      if (confirm('Delete this history entry?')) this.deleteEntry(entry.id);
-    });
   }
 
   formatTimestamp(timestamp) {
@@ -160,9 +173,12 @@ class HistoryManager {
   }
 
   escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    return String(text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   exportHistory() {

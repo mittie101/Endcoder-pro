@@ -83,6 +83,18 @@ function register() {
         }
         return { success: false, error: 'Save cancelled' };
     });
+
+    ipcMain.handle('show-confirm-dialog', async (event, title, message) => {
+        const { response } = await dialog.showMessageBox(getWindow(), {
+            type: 'question',
+            buttons: ['Cancel', 'Proceed'],
+            defaultId: 1,
+            cancelId: 0,
+            title,
+            message
+        });
+        return response === 1;
+    });
 }
 
 module.exports = { register };

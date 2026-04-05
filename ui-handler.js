@@ -71,6 +71,10 @@ class UIHandler {
     const resizer = document.querySelector('.resizer');
     if (!resizer) return;
 
+    // Remove any previously registered listeners to prevent accumulation on re-init
+    if (this._resizeMouseMove) document.removeEventListener('mousemove', this._resizeMouseMove);
+    if (this._resizeMouseUp) document.removeEventListener('mouseup', this._resizeMouseUp);
+
     let isResizing = false;
     let startX = 0;
     let startWidth = 0;
@@ -84,7 +88,7 @@ class UIHandler {
       e.preventDefault();
     });
 
-    document.addEventListener('mousemove', (e) => {
+    this._resizeMouseMove = (e) => {
       if (!isResizing) return;
 
       const leftPane = resizer.previousElementSibling;
@@ -97,9 +101,9 @@ class UIHandler {
       if (percentage > 20 && percentage < 80) {
         leftPane.style.flex = `0 0 ${percentage}%`;
       }
-    });
+    };
 
-    document.addEventListener('mouseup', () => {
+    this._resizeMouseUp = () => {
       if (isResizing) {
         isResizing = false;
         document.body.style.cursor = 'default';
@@ -111,7 +115,10 @@ class UIHandler {
           });
         }, 100);
       }
-    });
+    };
+
+    document.addEventListener('mousemove', this._resizeMouseMove);
+    document.addEventListener('mouseup', this._resizeMouseUp);
   }
 
   showNotification(message, type = 'info') {

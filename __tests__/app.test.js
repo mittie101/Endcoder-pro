@@ -158,10 +158,14 @@ class MockAdvancedFeatures {
 
 // ── load app.js ───────────────────────────────────────────────────────────────
 const appCode = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
-const { App, escapeHtml } = new Function(
+const { App } = new Function(
   'UIHandler', 'Converter', 'HistoryManager', 'JWTHandler', 'DiffTool', 'AdvancedFeatures',
-  appCode + '\nreturn { App, escapeHtml };'
+  appCode + '\nreturn { App };'
 )(MockUIHandler, MockConverter, MockHistoryManager, MockJWTHandler, MockDiffTool, MockAdvancedFeatures);
+
+// escapeHtml now lives in utils/escape.js — load it from there
+const escapeCode = fs.readFileSync(path.join(__dirname, '..', 'utils', 'escape.js'), 'utf8');
+const { escapeHtml } = new Function(escapeCode + '\nreturn { escapeHtml };')();
 
 // ── factory ───────────────────────────────────────────────────────────────────
 function makeApp() {
@@ -281,8 +285,8 @@ describe('App pipeline', () => {
     getOrCreate('pipelineAction').value = 'decode';
     app.addPipelineStep();
     expect(app.pipelineSteps).toHaveLength(2);
-    expect(app.pipelineSteps[0]).toEqual({ encoding: 'base64', action: 'encode' });
-    expect(app.pipelineSteps[1]).toEqual({ encoding: 'hex', action: 'decode' });
+    expect(app.pipelineSteps[0]).toEqual(expect.objectContaining({ encoding: 'base64', action: 'encode' }));
+    expect(app.pipelineSteps[1]).toEqual(expect.objectContaining({ encoding: 'hex', action: 'decode' }));
   });
 
   test('clearPipeline empties steps array', () => {

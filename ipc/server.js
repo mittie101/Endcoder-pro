@@ -79,7 +79,7 @@ function register() {
                 const providedBuf = Buffer.from(provided);
                 const validBuf = Buffer.from(current);
                 if (providedBuf.length !== validBuf.length || !crypto.timingSafeEqual(providedBuf, validBuf)) {
-                    return res.status(401).json({ error: 'Unauthorized', message: 'Invalid or missing X-API-Key header' });
+                    return res.status(401).json({ success: false, error: 'Invalid or missing X-API-Key header' });
                 }
                 next();
             };
@@ -110,40 +110,41 @@ function register() {
             apiApp.post('/api/encode', (req, res) => {
                 try {
                     const { data, encoding = 'base64' } = req.body;
-                    if (!data) return res.status(400).json({ error: 'Data is required' });
+                    if (!data) return res.status(400).json({ success: false, error: 'Data is required' });
                     const buffer = Buffer.from(data, 'utf8');
                     let encoded;
                     switch (encoding.toLowerCase()) {
                         case 'base64':    encoded = buffer.toString('base64'); break;
                         case 'base64url': encoded = buffer.toString('base64url'); break;
                         case 'hex':       encoded = buffer.toString('hex'); break;
-                        default: return res.status(400).json({ error: 'Unsupported encoding' });
+                        default: return res.status(400).json({ success: false, error: 'Unsupported encoding' });
                     }
                     res.json({ success: true, encoded, encoding, originalSize: buffer.length, encodedSize: encoded.length });
-                } catch (error) { res.status(500).json({ error: error.message }); }
+                } catch (error) { res.status(500).json({ success: false, error: error.message }); }
             });
 
             // Decode
             apiApp.post('/api/decode', (req, res) => {
                 try {
                     const { data, encoding = 'base64', outputEncoding = 'utf8' } = req.body;
-                    if (!data) return res.status(400).json({ error: 'Data is required' });
+                    if (!data) return res.status(400).json({ success: false, error: 'Data is required' });
                     let buffer;
                     switch (encoding.toLowerCase()) {
                         case 'base64':
                         case 'base64url': buffer = Buffer.from(data, encoding); break;
                         case 'hex':       buffer = Buffer.from(data, 'hex'); break;
-                        default: return res.status(400).json({ error: 'Unsupported encoding' });
+                        default: return res.status(400).json({ success: false, error: 'Unsupported encoding' });
                     }
                     res.json({ success: true, decoded: buffer.toString(outputEncoding), encoding, encodedSize: data.length, decodedSize: buffer.length });
-                } catch (error) { res.status(500).json({ error: error.message }); }
+                } catch (error) { res.status(500).json({ success: false, error: error.message }); }
             });
 
             // JWT verify
             apiApp.post('/api/jwt/verify', (req, res) => {
+                if (!jwt) return res.status(501).json({ success: false, error: 'JWT library not available' });
                 try {
                     const { token, secret, algorithm = 'HS256' } = req.body;
-                    if (!token || !secret) return res.status(400).json({ error: 'Token and secret are required' });
+                    if (!token || !secret) return res.status(400).json({ success: false, error: 'Token and secret are required' });
                     const decoded = jwt.verify(token, secret, { algorithms: [algorithm] });
                     res.json({ success: true, valid: true, decoded });
                 } catch (error) {
@@ -153,13 +154,14 @@ function register() {
 
             // JWT sign
             apiApp.post('/api/jwt/sign', (req, res) => {
+                if (!jwt) return res.status(501).json({ success: false, error: 'JWT library not available' });
                 try {
                     const { payload, secret, algorithm = 'HS256', expiresIn } = req.body;
-                    if (!payload || !secret) return res.status(400).json({ error: 'Payload and secret are required' });
+                    if (!payload || !secret) return res.status(400).json({ success: false, error: 'Payload and secret are required' });
                     const options = { algorithm };
                     if (expiresIn) options.expiresIn = expiresIn;
                     res.json({ success: true, token: jwt.sign(payload, secret, options) });
-                } catch (error) { res.status(500).json({ error: error.message }); }
+                } catch (error) { res.status(500).json({ success: false, error: error.message }); }
             });
 
             // Health check
@@ -169,8 +171,9 @@ function register() {
 
             await new Promise((resolve, reject) => {
                 serverInstance = apiApp.listen(port, 'localhost');
-                serverInstance.once('listening', resolve);
-                serverInstance.once('error', reject);
+                const timeout = setTimeout(() => reject(new Error('Server start timeout after 5s')), 5000);
+                serverInstance.once('listening', () => { clearTimeout(timeout); resolve(); });
+                serverInstance.once('error', (err) => { clearTimeout(timeout); reject(err); });
             });
 
             serverPort = serverInstance.address().port;
@@ -178,6 +181,7 @@ function register() {
             return { success: true, port: serverPort, apiKey: API_KEY, message: `Server started on http://localhost:${serverPort}` };
         } catch (error) {
             serverInstance = null;
+            apiApp = null;
             return { success: false, error: error.message };
         }
     });
@@ -202,7 +206,7 @@ function register() {
 
     ipcMain.handle('rotate-api-key', async () => {
         const newKey = crypto.randomBytes(32).toString('hex');
-        // Persist the new key encrypted at rest
+        // Persist the new key encrypted at rest before hot-swapping in memory
         try {
             if (safeStorage && safeStorage.isEncryptionAvailable()
                     && app && typeof app.getPath === 'function') {
@@ -210,8 +214,10 @@ function register() {
                 const encrypted = safeStorage.encryptString(newKey);
                 await fsAsync.writeFile(keyFile, encrypted);
             }
-        } catch { /* ignore persistence errors — key still hot-swaps in memory */ }
-        // Hot-swap: update the running server without restart
+        } catch (err) {
+            return { success: false, error: `Failed to persist new key: ${err.message}` };
+        }
+        // Hot-swap only after the file write has succeeded
         if (apiApp) apiApp.locals.apiKey = newKey;
         return { success: true, apiKey: newKey };
     });

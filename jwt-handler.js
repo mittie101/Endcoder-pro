@@ -194,7 +194,8 @@ class JWTHandler {
         document.getElementById('jwtSignedToken').value = result.token;
         document.getElementById('copySignedTokenBtn').addEventListener('click', () => {
           navigator.clipboard.writeText(result.token)
-            .then(() => this.ui.showSuccess('Token copied to clipboard'));
+            .then(() => this.ui.showSuccess('Token copied to clipboard'))
+            .catch(() => this.ui.showError('Clipboard access denied'));
         });
 
         this.ui.showSuccess('Token generated successfully');

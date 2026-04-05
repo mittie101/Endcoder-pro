@@ -1087,7 +1087,7 @@ textarea {
   right: 0;
   z-index: 9999;
   padding: 12px 20px;
-  background: #c0392b;
+  background: var(--danger, #c0392b);
   color: #fff;
   text-align: center;
   font-weight: 700;

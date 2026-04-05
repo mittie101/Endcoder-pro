@@ -150,6 +150,8 @@ class AdvancedFeatures {
   
       navigator.clipboard.writeText(snippet).then(() => {
         this.ui.showSuccess(`${type.toUpperCase()} snippet copied`);
+      }).catch(() => {
+        this.ui.showError('Failed to copy to clipboard');
       });
     }
   }
