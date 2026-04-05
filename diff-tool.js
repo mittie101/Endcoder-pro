@@ -94,6 +94,7 @@ class DiffTool {
         </div>
       `;
 
+      resultDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
       this.ui.showSuccess('Comparison complete');
     } catch (error) {
       this.ui.showError('Comparison failed: ' + error.message);

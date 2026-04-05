@@ -1,43 +1,67 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Endcoder Pro v3.1</title>
-    <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="vendor/monaco.bundle.css">
-</head>
-<body>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="vendor/monaco.bundle.css" />
+  </head>
+  <body>
     <div id="loader" class="loader hidden">
-        <div class="loader-spinner"></div>
-        <p>Processing...</p>
+      <div class="loader-spinner"></div>
+      <p>Processing...</p>
     </div>
 
     <div id="notificationContainer"></div>
-    
-    <div id="qrCodeContainer" class="qr-overlay hidden">
-        <div class="qr-box">
-            <h3>QR Code Generated</h3>
-            <canvas id="qrCanvas"></canvas>
-            <div class="qr-actions">
-                <button id="downloadQrBtn" class="btn btn-primary">Download PNG</button>
-                <button id="closeQrBtn" class="btn btn-secondary">Close</button>
-            </div>
-        </div>
+    <div class="app-backdrop" aria-hidden="true">
+      <div class="app-backdrop-grid"></div>
+      <div class="app-backdrop-glow app-backdrop-glow-one"></div>
+      <div class="app-backdrop-glow app-backdrop-glow-two"></div>
     </div>
 
-    <header class="app-header">
+    <div id="qrCodeContainer" class="qr-overlay hidden">
+      <div class="qr-box">
+        <h3>QR Code Generated</h3>
+        <canvas id="qrCanvas"></canvas>
+        <div class="qr-actions">
+          <button id="downloadQrBtn" class="btn btn-primary">Download PNG</button>
+          <button id="closeQrBtn" class="btn btn-secondary">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="app-shell">
+      <header class="app-header surface">
         <div class="header-left">
-            <img src="logo.png" alt="Endcoder Pro" class="app-logo">
-            <h1>Endcoder Pro</h1>
-            <span class="version">v3.1</span>
+          <div class="brand-lockup">
+            <img src="logo.png" alt="Endcoder Pro" class="app-logo" />
+            <div class="brand-copy">
+              <div class="brand-row">
+                <h1>Endcoder Pro</h1>
+                <span class="version">v3.1</span>
+              </div>
+              <p>
+                Encode, Decode, Inspect, Compare, Sign, Password hashing, Image Optimisation and a
+                API server all from one desktop app.
+              </p>
+            </div>
+          </div>
         </div>
         <div class="header-right">
-            <button id="themeToggle" class="theme-toggle" title="Toggle Theme">🌓</button>
+          <div class="header-stat">
+            <span class="header-stat-label">Modes</span>
+            <strong>7 toolsets</strong>
+          </div>
+          <div class="header-stat">
+            <span class="header-stat-label">Workflow</span>
+            <strong>Monaco-backed</strong>
+          </div>
+          <button id="themeToggle" class="theme-toggle" title="Toggle Theme">🌓</button>
         </div>
-    </header>
+      </header>
 
-    <nav class="tabs">
+      <nav class="tabs surface" aria-label="Primary tools">
         <button class="tab active" data-tab="encoder">Encoder/Decoder</button>
         <button class="tab" data-tab="jwt">JWT Tools</button>
         <button class="tab" data-tab="password">Password Hash</button>
@@ -45,269 +69,398 @@
         <button class="tab" data-tab="image">Image Optimizer</button>
         <button class="tab" data-tab="server">API Server</button>
         <button class="tab" data-tab="history">History</button>
-    </nav>
+      </nav>
 
-    <div id="encoder-tab" class="tab-content active">
-        <div class="controls">
-            <div class="control-group">
-                <label>Encoding:</label>
-                <select id="encodingSelect">
-                    <option value="base64">Base64</option>
-                    <option value="base64url">Base64 URL</option>
-                    <option value="base32">Base32</option>
-                    <option value="base32hex">Base32 Hex</option>
-                    <option value="hex">Hexadecimal</option>
-                    <option value="binary">Binary</option>
-                    <option value="ascii85">ASCII85</option>
-                    <option value="base58">Base58</option>
-                    <option value="uuencode">UUEncode</option>
-                    <option value="quoted-printable">Quoted-Printable</option>
-                    <option value="percent">Percent Encoding</option>
-                    <option value="rot13">ROT13</option>
-                    <option value="caesar">Caesar Cipher</option>
-                    <option value="atbash">Atbash</option>
-                    <option value="html-entities">HTML Entities</option>
-                    <option value="morse">Morse Code</option>
-                </select>
-            </div>
-            <div class="control-group">
-                <button id="encodeBtn" class="btn btn-primary" title="Ctrl+E">Encode</button>
-                <button id="decodeBtn" class="btn btn-primary" title="Ctrl+D">Decode</button>
-            </div>
-            <div class="control-group">
-                <button id="loadFile" class="btn" title="Ctrl+O">Load File</button>
-                <button id="saveOutput" class="btn" title="Ctrl+S">Save Output</button>
-                <button id="swapBtn" class="btn" title="Ctrl+Shift+X">Swap</button>
-                <button id="togglePipeline" class="btn">Pipeline</button>
-            </div>
+      <div id="encoder-tab" class="tab-content active">
+        <section class="hero-band surface">
+          <div class="hero-copy">
+            <div class="eyebrow">Primary Workspace</div>
+            <h2>Transform raw text without leaving the editing plane.</h2>
+            <p>
+              Choose an encoding, run the action, and keep both sides visible for inspection,
+              snippets, and export.
+            </p>
+          </div>
+        </section>
+
+        <div class="controls surface">
+          <div class="control-group control-group-stack">
+            <label>Encoding</label>
+            <select id="encodingSelect">
+              <option value="base64">Base64</option>
+              <option value="base64url">Base64 URL</option>
+              <option value="base32">Base32</option>
+              <option value="base32hex">Base32 Hex</option>
+              <option value="hex">Hexadecimal</option>
+              <option value="binary">Binary</option>
+              <option value="ascii85">ASCII85</option>
+              <option value="base58">Base58</option>
+              <option value="uuencode">UUEncode</option>
+              <option value="quoted-printable">Quoted-Printable</option>
+              <option value="percent">Percent Encoding</option>
+              <option value="rot13">ROT13</option>
+              <option value="caesar">Caesar Cipher</option>
+              <option value="atbash">Atbash</option>
+              <option value="html-entities">HTML Entities</option>
+              <option value="morse">Morse Code</option>
+            </select>
+          </div>
+          <div class="control-group">
+            <button id="encodeBtn" class="btn btn-primary" title="Ctrl+E">Encode</button>
+            <button id="decodeBtn" class="btn" title="Ctrl+D">Decode</button>
+          </div>
+          <div class="control-group">
+            <button id="loadFile" class="btn" title="Ctrl+O">Load File</button>
+            <button id="saveOutput" class="btn" title="Ctrl+S">Save Output</button>
+            <button id="swapBtn" class="btn" title="Ctrl+Shift+X">Swap</button>
+            <button id="togglePipeline" class="btn">Pipeline</button>
+          </div>
         </div>
 
-        <!-- Encoding Pipeline -->
-        <div id="pipelineContainer" class="controls hidden">
-            <div class="control-group">
-                <label>Pipeline:</label>
-                <div id="pipelineSteps" class="pipeline-steps"></div>
-            </div>
-            <div class="control-group">
-                <select id="pipelineEncoding">
-                    <option value="base64">Base64</option>
-                    <option value="base64url">Base64 URL</option>
-                    <option value="base32">Base32</option>
-                    <option value="hex">Hexadecimal</option>
-                    <option value="binary">Binary</option>
-                    <option value="ascii85">ASCII85</option>
-                    <option value="base58">Base58</option>
-                    <option value="rot13">ROT13</option>
-                    <option value="percent">Percent</option>
-                </select>
-                <select id="pipelineAction">
-                    <option value="encode">Encode</option>
-                    <option value="decode">Decode</option>
-                </select>
-                <button id="addPipelineStep" class="btn-small">+ Add Step</button>
-            </div>
-            <div class="control-group">
-                <button id="runPipeline" class="btn btn-primary">Run Pipeline</button>
-                <button id="clearPipeline" class="btn-small">Clear Pipeline</button>
-            </div>
+        <div id="pipelineContainer" class="controls surface hidden">
+          <div class="control-group control-group-stack pipeline-group">
+            <label>Pipeline</label>
+            <div id="pipelineSteps" class="pipeline-steps"></div>
+          </div>
+          <div class="control-group">
+            <select id="pipelineEncoding">
+              <option value="base64">Base64</option>
+              <option value="base64url">Base64 URL</option>
+              <option value="base32">Base32</option>
+              <option value="hex">Hexadecimal</option>
+              <option value="binary">Binary</option>
+              <option value="ascii85">ASCII85</option>
+              <option value="base58">Base58</option>
+              <option value="rot13">ROT13</option>
+              <option value="percent">Percent</option>
+            </select>
+            <select id="pipelineAction">
+              <option value="encode">Encode</option>
+              <option value="decode">Decode</option>
+            </select>
+            <button id="addPipelineStep" class="btn-small">+ Add Step</button>
+          </div>
+          <div class="control-group">
+            <button id="runPipeline" class="btn btn-primary">Run Pipeline</button>
+            <button id="clearPipeline" class="btn-small">Clear Pipeline</button>
+          </div>
         </div>
 
-        <div class="editor-container">
-            <div class="editor-panel">
-                <div class="panel-header">
-                    <h3>Input</h3>
-                    <div class="panel-actions">
-                        <button id="sanitizeBtn" class="btn-small" title="Fix formatting">Sanitize</button>
-                        <button id="copyInput" class="btn-small">Copy</button>
-                        <button id="clearInput" class="btn-small">Clear</button>
-                    </div>
-                </div>
-                <div class="editor-wrapper">
-                    <div id="monacoInput" class="editor-host"></div>
-                    <div class="empty-state" id="inputEmptyState">
-                        <div class="empty-state-icon">📝</div>
-                        <div class="empty-state-text">Type, paste, or drag & drop a file</div>
-                    </div>
-                </div>
-                <div id="inputStats" class="stats-bar"></div>
+        <div class="editor-container surface">
+          <div class="editor-panel">
+            <div class="panel-header">
+              <div>
+                <span class="panel-kicker">Source</span>
+                <h3>Input</h3>
+              </div>
+              <div class="panel-actions">
+                <button id="sanitizeBtn" class="btn-small" title="Fix formatting">Sanitize</button>
+                <button id="copyInput" class="btn-small">Copy</button>
+                <button id="clearInput" class="btn-small">Clear</button>
+              </div>
             </div>
-
-            <div class="resizer"></div>
-
-            <div class="editor-panel">
-                <div class="panel-header">
-                    <h3>Output</h3>
-                    <div class="panel-actions">
-                        <button id="qrCodeBtn" class="btn-small" title="Generate QR Code">QR Code</button>
-                        <button id="copyOutput" class="btn-small">Copy</button>
-                        <button id="clearOutput" class="btn-small">Clear</button>
-                        <div class="dropdown">
-                            <button class="btn-small">Snippets ▾</button>
-                            <div class="dropdown-content" id="snippetMenu">
-                                <a data-type="img">HTML &lt;img&gt;</a>
-                                <a data-type="css">CSS Background</a>
-                                <a data-type="datauri">Data URI</a>
-                                <a data-type="json">JSON Object</a>
-                            </div>
-                        </div>
-                        <div class="dropdown">
-                            <button class="btn-small">Export ▾</button>
-                            <div class="dropdown-content">
-                                <a id="exportCSharp">C# Byte Array</a>
-                                <a id="exportJava">Java Byte Array</a>
-                                <a id="exportPython">Python Bytes</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="editor-wrapper">
-                    <div id="monacoOutput" class="editor-host"></div>
-                    <div class="empty-state" id="outputEmptyState">
-                        <div class="empty-state-icon">✨</div>
-                        <div class="empty-state-text">Output will appear here</div>
-                    </div>
-                </div>
-                <div id="outputStats" class="stats-bar"></div>
+            <div class="editor-wrapper">
+              <div id="monacoInput" class="editor-host"></div>
+              <div class="empty-state" id="inputEmptyState">
+                <div class="empty-state-icon">📝</div>
+                <div class="empty-state-text">Type, paste, or drag & drop a file</div>
+              </div>
             </div>
+            <div id="inputStats" class="stats-bar"></div>
+          </div>
+
+          <div class="resizer"></div>
+
+          <div class="editor-panel">
+            <div class="panel-header">
+              <div>
+                <span class="panel-kicker">Result</span>
+                <h3>Output</h3>
+              </div>
+              <div class="panel-actions">
+                <button id="qrCodeBtn" class="btn-small" title="Generate QR Code">QR Code</button>
+                <button id="copyOutput" class="btn-small">Copy</button>
+                <button id="clearOutput" class="btn-small">Clear</button>
+                <div class="dropdown">
+                  <button class="btn-small">Snippets ▾</button>
+                  <div class="dropdown-content" id="snippetMenu">
+                    <a data-type="img">HTML &lt;img&gt;</a>
+                    <a data-type="css">CSS Background</a>
+                    <a data-type="datauri">Data URI</a>
+                    <a data-type="json">JSON Object</a>
+                  </div>
+                </div>
+                <div class="dropdown">
+                  <button class="btn-small">Export ▾</button>
+                  <div class="dropdown-content">
+                    <a id="exportCSharp">C# Byte Array</a>
+                    <a id="exportJava">Java Byte Array</a>
+                    <a id="exportPython">Python Bytes</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="editor-wrapper">
+              <div id="monacoOutput" class="editor-host"></div>
+              <div class="empty-state" id="outputEmptyState">
+                <div class="empty-state-icon">✨</div>
+                <div class="empty-state-text">Output will appear here</div>
+              </div>
+            </div>
+            <div id="outputStats" class="stats-bar"></div>
+          </div>
         </div>
-    </div>
+      </div>
 
-    <div id="jwt-tab" class="tab-content">
+      <div id="jwt-tab" class="tab-content">
+        <section class="tool-intro surface">
+          <div>
+            <div class="eyebrow">JWT Toolkit</div>
+            <h2>Verify, sign, and inspect tokens without context switching.</h2>
+          </div>
+          <p>
+            Use the editors below for trust checks, payload edits, and raw decoding during API work.
+          </p>
+        </section>
         <div class="jwt-container">
-            <div class="jwt-section">
-                <h2>Verify JWT</h2>
-                <div class="form-group">
-                    <label>Token:</label>
-                    <textarea id="jwtTokenInput" rows="4" placeholder="Paste JWT token..."></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Secret:</label>
-                    <input type="text" id="jwtSecretInput" placeholder="Secret key">
-                </div>
-                <div class="form-group">
-                    <select id="jwtAlgorithm"><option value="HS256">HS256</option><option value="HS512">HS512</option></select>
-                </div>
-                <button id="verifyJWT" class="btn btn-primary">Verify</button>
-                <div id="jwtVerifyResult" class="jwt-result-container"></div>
+          <div class="jwt-section surface">
+            <h2>Verify JWT</h2>
+            <div class="form-group">
+              <label>Token</label>
+              <textarea id="jwtTokenInput" rows="4" placeholder="Paste JWT token..."></textarea>
             </div>
-            <div class="jwt-section">
-                <h2>Sign JWT</h2>
-                <div class="form-group">
-                    <label>Payload:</label>
-                    <div id="monacoJWTPayload" class="monaco-jwt-editor"></div>
-                </div>
-                <div class="form-group">
-                    <label>Secret:</label>
-                    <input type="text" id="jwtSignSecret" placeholder="Secret key">
-                </div>
-                <button id="signJWT" class="btn btn-primary">Sign Token</button>
-                <div id="jwtSignOutput" class="jwt-result-container"></div>
+            <div class="form-group">
+              <label>Secret</label>
+              <input type="text" id="jwtSecretInput" placeholder="Secret key" />
             </div>
-            <div class="jwt-section">
-                <h2>Decode JWT (No Verification)</h2>
-                <div class="form-group">
-                    <label>Token:</label>
-                    <textarea id="jwtDecodeInput" rows="4" placeholder="Paste JWT token to decode..."></textarea>
-                </div>
-                <button id="decodeJWT" class="btn btn-primary">Decode</button>
-                <div id="jwtDecodeResult" class="jwt-result-container"></div>
+            <div class="form-group">
+              <label>Algorithm</label>
+              <select id="jwtAlgorithm">
+                <option value="HS256">HS256</option>
+                <option value="HS512">HS512</option>
+              </select>
             </div>
+            <button id="verifyJWT" class="btn btn-primary">Verify</button>
+            <div id="jwtVerifyResult" class="jwt-result-container"></div>
+          </div>
+          <div class="jwt-section surface">
+            <h2>Sign JWT</h2>
+            <div class="form-group">
+              <label>Payload</label>
+              <div id="monacoJWTPayload" class="monaco-jwt-editor"></div>
+            </div>
+            <div class="form-group">
+              <label>Secret</label>
+              <input type="text" id="jwtSignSecret" placeholder="Secret key" />
+            </div>
+            <button id="signJWT" class="btn btn-primary">Sign Token</button>
+            <div id="jwtSignOutput" class="jwt-result-container"></div>
+          </div>
+          <div class="jwt-section surface">
+            <h2>Decode JWT</h2>
+            <div class="form-group">
+              <label>Token</label>
+              <textarea
+                id="jwtDecodeInput"
+                rows="4"
+                placeholder="Paste JWT token to decode..."
+              ></textarea>
+            </div>
+            <button id="decodeJWT" class="btn btn-primary">Decode</button>
+            <div id="jwtDecodeResult" class="jwt-result-container"></div>
+          </div>
         </div>
-    </div>
+      </div>
 
-    <div id="password-tab" class="tab-content">
+      <div id="password-tab" class="tab-content">
+        <section class="tool-intro surface">
+          <div>
+            <div class="eyebrow">Password Operations</div>
+            <h2>Generate and verify hashes with secure defaults close at hand.</h2>
+          </div>
+          <p>
+            Switch between PBKDF2, bcrypt, and Argon2 based on system constraints and verification
+            needs.
+          </p>
+        </section>
         <div class="jwt-container">
-            <div class="jwt-section">
-                <h2>Hash Password</h2>
-                <div class="form-group">
-                    <label>Password:</label>
-                    <input type="password" id="passwordInput">
-                </div>
-                <div class="form-group">
-                    <select id="passwordAlgorithm">
-                        <option value="pbkdf2">PBKDF2 (Standard)</option>
-                        <option value="bcrypt">bcrypt (Secure)</option>
-                        <option value="argon2">Argon2 (Best)</option>
-                    </select>
-                </div>
-                <div id="bcryptRoundsGroup" class="form-group hidden"><label>Rounds:</label><input type="number" id="bcryptRounds" value="10"></div>
-                <div id="argon2OptionsGroup" class="form-group hidden"><label>Memory (KB):</label><input type="number" id="argon2Memory" value="65536"></div>
-                <div id="argon2TimeGroup" class="form-group hidden"><label>Iterations:</label><input type="number" id="argon2Time" value="3"></div>
-                <div id="pbkdf2IterationsGroup" class="form-group"><label>Iterations:</label><input type="number" id="pbkdf2Iterations" value="100000"></div>
-                
-                <button id="hashPasswordBtn" class="btn btn-primary">Hash Password</button>
-                <div id="passwordHashResult" class="jwt-result-container"></div>
+          <div class="jwt-section surface">
+            <h2>Hash Password</h2>
+            <div class="form-group">
+              <label>Password</label>
+              <input type="password" id="passwordInput" />
             </div>
-            <div class="jwt-section">
-                <h2>Verify Password</h2>
-                <div class="form-group"><label>Password:</label><input type="password" id="verifyPasswordInput"></div>
-                <div class="form-group"><label>Hash:</label><textarea id="verifyHashInput" rows="3"></textarea></div>
-                <button id="verifyPasswordBtn" class="btn btn-primary">Verify</button>
-                <div id="passwordVerifyResult" class="jwt-result-container"></div>
+            <div class="form-group">
+              <label>Algorithm</label>
+              <select id="passwordAlgorithm">
+                <option value="pbkdf2">PBKDF2 (Standard)</option>
+                <option value="bcrypt">bcrypt (Secure)</option>
+                <option value="argon2">Argon2 (Best)</option>
+              </select>
             </div>
-        </div>
-    </div>
+            <div id="bcryptRoundsGroup" class="form-group hidden">
+              <label>Rounds</label><input type="number" id="bcryptRounds" value="10" />
+            </div>
+            <div id="argon2OptionsGroup" class="form-group hidden">
+              <label>Memory (KB)</label><input type="number" id="argon2Memory" value="65536" />
+            </div>
+            <div id="argon2TimeGroup" class="form-group hidden">
+              <label>Iterations</label><input type="number" id="argon2Time" value="3" />
+            </div>
+            <div id="pbkdf2IterationsGroup" class="form-group">
+              <label>Iterations</label><input type="number" id="pbkdf2Iterations" value="100000" />
+            </div>
 
-    <div id="diff-tab" class="tab-content">
-        <div class="controls">
-            <button id="compareDiff" class="btn btn-primary">Compare</button>
-            <button id="swapDiff" class="btn">Swap</button>
+            <div class="control-group">
+              <button id="hashPasswordBtn" class="btn btn-primary">Hash Password</button>
+              <button id="clearPasswordHashBtn" class="btn">Clear</button>
+            </div>
+            <div id="passwordHashResult" class="jwt-result-container"></div>
+          </div>
+          <div class="jwt-section surface">
+            <h2>Verify Password</h2>
+            <div class="form-group">
+              <label>Password</label><input type="password" id="verifyPasswordInput" />
+            </div>
+            <div class="form-group">
+              <label>Hash</label><textarea id="verifyHashInput" rows="3"></textarea>
+            </div>
+            <button id="verifyPasswordBtn" class="btn btn-primary">Verify</button>
+            <div id="passwordVerifyResult" class="jwt-result-container"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="diff-tab" class="tab-content">
+        <section class="tool-intro surface">
+          <div>
+            <div class="eyebrow">Diff Comparator</div>
+            <h2>Compare revisions side by side and inspect exact drift.</h2>
+          </div>
+          <p>
+            Load two versions, swap positions if needed, then run a direct comparison for review
+            work.
+          </p>
+        </section>
+        <div class="controls surface">
+          <button id="compareDiff" class="btn btn-primary">Compare</button>
+          <button id="swapDiff" class="btn">Swap</button>
+          <button id="loadDiffLeft" class="btn">Load Left</button>
+          <button id="loadDiffRight" class="btn">Load Right</button>
         </div>
         <div class="diff-editors">
-            <div class="editor-panel">
-                <div class="panel-header"><h3>Left</h3></div>
-                <div id="monacoDiffLeft" class="editor-host"></div>
+          <div class="editor-panel surface">
+            <div class="panel-header">
+              <div>
+                <span class="panel-kicker">Revision A</span>
+                <h3>Left</h3>
+              </div>
             </div>
-            <div class="editor-panel">
-                <div class="panel-header"><h3>Right</h3></div>
-                <div id="monacoDiffRight" class="editor-host"></div>
+            <div id="monacoDiffLeft" class="editor-host"></div>
+          </div>
+          <div class="editor-panel surface">
+            <div class="panel-header">
+              <div>
+                <span class="panel-kicker">Revision B</span>
+                <h3>Right</h3>
+              </div>
             </div>
+            <div id="monacoDiffRight" class="editor-host"></div>
+          </div>
         </div>
-        <div id="diffResult" class="diff-result-container"></div>
-    </div>
+        <div id="diffResult" class="diff-result-container surface"></div>
+      </div>
 
-    <div id="image-tab" class="tab-content">
-        <div class="image-optimizer">
-            <h2>Image Optimization</h2>
-            <div class="form-grid">
-                <div class="form-group"><label>Width:</label><input type="number" id="imgWidth" placeholder="Optional"></div>
-                <div class="form-group"><label>Height:</label><input type="number" id="imgHeight" placeholder="Optional"></div>
-                <div class="form-group"><label>Format:</label><select id="imgFormat"><option value="jpeg">JPEG</option><option value="png">PNG</option></select></div>
-                <div class="form-group"><label>Quality:</label><input type="number" id="imgQuality" value="80"></div>
+      <div id="image-tab" class="tab-content">
+        <section class="tool-intro surface">
+          <div>
+            <div class="eyebrow">Image Pipeline</div>
+            <h2>Resize and reformat assets before they reach the browser or API edge.</h2>
+          </div>
+          <p>Set output dimensions, choose a format, and compress with a single local pass.</p>
+        </section>
+        <div class="image-optimizer surface">
+          <h2>Image Optimization</h2>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Width</label><input type="number" id="imgWidth" placeholder="Optional" />
             </div>
-            <button id="optimizeImageBtn" class="btn btn-primary">Load & Optimize</button>
+            <div class="form-group">
+              <label>Height</label><input type="number" id="imgHeight" placeholder="Optional" />
+            </div>
+            <div class="form-group">
+              <label>Format</label
+              ><select id="imgFormat">
+                <option value="jpeg">JPEG</option>
+                <option value="png">PNG</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Quality</label><input type="number" id="imgQuality" value="80" />
+            </div>
+          </div>
+          <button id="optimizeImageBtn" class="btn btn-primary">Load & Optimize</button>
         </div>
-    </div>
+      </div>
 
-    <div id="server-tab" class="tab-content">
-        <div class="server-container">
-            <h2>Local API Server</h2>
-            <div class="server-controls">
-                <div class="form-group"><label>Port:</label><input type="number" id="serverPort" value="3000"></div>
-                <button id="startServer" class="btn btn-primary">Start</button>
-                <button id="stopServer" class="btn btn-danger" disabled>Stop</button>
-                <button id="rotateKeyBtn" class="btn" disabled title="Generate and apply a new API key instantly">Rotate Key</button>
-                <div id="serverStatus" class="server-status stopped">Not running</div>
+      <div id="server-tab" class="tab-content">
+        <section class="tool-intro surface">
+          <div>
+            <div class="eyebrow">Local Server</div>
+            <h2>Expose the toolchain as a local API with a managed key lifecycle.</h2>
+          </div>
+          <p>
+            Start the service, rotate credentials in place, and keep the current status visible.
+          </p>
+        </section>
+        <div class="server-container surface">
+          <h2>Local API Server</h2>
+          <div class="server-controls">
+            <div class="form-group">
+              <label>Port</label><input type="number" id="serverPort" value="3000" />
             </div>
+            <button id="startServer" class="btn btn-primary">Start</button>
+            <button id="stopServer" class="btn btn-danger" disabled>Stop</button>
+            <button
+              id="rotateKeyBtn"
+              class="btn"
+              disabled
+              title="Generate and apply a new API key instantly"
+            >
+              Rotate Key
+            </button>
+            <div id="serverStatus" class="server-status stopped">Not running</div>
+          </div>
         </div>
-    </div>
+      </div>
 
-    <div id="history-tab" class="tab-content">
-        <div class="history-container">
-            <div class="history-header">
-                <h2>History</h2>
-                <div class="history-actions">
-                    <button id="exportHistory" class="btn">Export</button>
-                    <button id="clearHistory" class="btn btn-danger">Clear</button>
-                </div>
+      <div id="history-tab" class="tab-content">
+        <section class="tool-intro surface">
+          <div>
+            <div class="eyebrow">Activity Log</div>
+            <h2>Review recent transforms, exports, and tool runs as a working record.</h2>
+          </div>
+          <p>
+            Export the trail when you need evidence or clear it to reset the surface between
+            sessions.
+          </p>
+        </section>
+        <div class="history-container surface">
+          <div class="history-header">
+            <h2>History</h2>
+            <div class="history-actions">
+              <button id="exportHistory" class="btn">Export</button>
+              <button id="clearHistory" class="btn btn-danger">Clear</button>
             </div>
-            <div id="historyList" class="history-list"></div>
+          </div>
+          <div id="historyList" class="history-list"></div>
         </div>
+      </div>
     </div>
 
     <script src="node_modules/qrious/dist/qrious.min.js"></script>
     <script src="vendor/monaco.bundle.js"></script>
-    
+
     <script src="renderer-config.js"></script>
     <script src="encodings.js"></script>
     <script src="converter.js"></script>
@@ -317,5 +470,5 @@
     <script src="diff-tool.js"></script>
     <script src="advanced-features.js"></script>
     <script src="app.js"></script>
-</body>
+  </body>
 </html>

@@ -39,9 +39,16 @@ class UIHandler {
     });
 
     // Update content
+    let activeContent = null;
     document.querySelectorAll('.tab-content').forEach(content => {
-      content.classList.toggle('active', content.id === `${tabName}-tab`);
+      const isActive = content.id === `${tabName}-tab`;
+      content.classList.toggle('active', isActive);
+      if (isActive) activeContent = content;
     });
+
+    if (activeContent) {
+      activeContent.scrollTop = 0;
+    }
 
     // Refresh Monaco editors when switching tabs
     setTimeout(() => {

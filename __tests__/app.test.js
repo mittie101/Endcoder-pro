@@ -431,6 +431,22 @@ describe('App.restoreFromHistory', () => {
   });
 });
 
+describe('App.loadOptimizedImageIntoEncoder', () => {
+  test('loads base64 into input, clears output, selects base64, and switches tab', () => {
+    const { app, inputEd, outputEd } = makeApp();
+    outputEd.setValue('stale output');
+    getOrCreate('encodingSelect').value = 'hex';
+
+    app.loadOptimizedImageIntoEncoder('YWJj');
+
+    expect(inputEd.getValue()).toBe('YWJj');
+    expect(outputEd.getValue()).toBe('');
+    expect(getOrCreate('encodingSelect').value).toBe('base64');
+    expect(app.ui.switchTab).toHaveBeenCalledWith('encoder');
+    expect(app.ui.updateStats).toHaveBeenCalled();
+  });
+});
+
 describe('App export functions', () => {
   test('exportAsPython escapes backslash', () => {
     const { app, outputEd } = makeApp();

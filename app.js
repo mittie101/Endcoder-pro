@@ -8,6 +8,7 @@ class App {
     this.diffTool = new DiffTool(this.ui);
     this.advanced = new AdvancedFeatures(this.ui); // Initialize Advanced Features
     this.serverRunning = false;
+    this.serverPort = 3000;
   }
 
   initTheme() {
@@ -193,6 +194,10 @@ class App {
 
     // Image optimization
     document.getElementById('optimizeImageBtn')?.addEventListener('click', () => this.optimizeImage());
+
+    // Diff file operations
+    document.getElementById('loadDiffLeft')?.addEventListener('click', () => this.loadFileIntoEditor('diffLeft', 'Left diff'));
+    document.getElementById('loadDiffRight')?.addEventListener('click', () => this.loadFileIntoEditor('diffRight', 'Right diff'));
     
     // Export options
     document.getElementById('exportCSharp')?.addEventListener('click', () => this.exportAsCSharp());
@@ -638,6 +643,10 @@ class App {
   }
 
   async loadFile() {
+    return this.loadFileIntoEditor('input', 'Input');
+  }
+
+  async loadFileIntoEditor(editorName, label = 'Editor') {
     try {
       const filePath = await window.electronAPI.selectFile();
       if (!filePath) return;
@@ -655,7 +664,20 @@ class App {
           }
         }
         
-        const editor = this.ui.getMonacoEditor('input');
+        const editor = this.ui.getMonacoEditor(editorName);
+        if (!editor) {
+          this.ui.showError(`${label} editor unavailable`);
+          return;
+        }
+        const fileName = (result.name || '').toLowerCase();
+        const isBinaryPreview = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.avif', '.ico', '.pdf', '.zip', '.exe', '.dll'].some(ext => fileName.endsWith(ext));
+
+        if (isBinaryPreview && (editorName === 'diffLeft' || editorName === 'diffRight')) {
+          editor.setValue(result.buffer);
+          this.ui.showSuccess(`${label} loaded as base64: ${result.name}`);
+          return;
+        }
+
         // Decode base64 properly to handle multi-byte UTF-8 characters
         const binaryString = atob(result.buffer);
         const bytes = new Uint8Array(binaryString.length);
@@ -664,7 +686,7 @@ class App {
         }
         const decoded = new TextDecoder('utf-8').decode(bytes);
         editor.setValue(decoded);
-        this.ui.showSuccess(`Loaded: ${result.name}`);
+        this.ui.showSuccess(`${label} loaded: ${result.name}`);
       } else {
         this.ui.showError('Failed to load file: ' + result.error);
       }
@@ -706,14 +728,16 @@ class App {
       const result = await window.electronAPI.optimizeImage(filePath, { width, height, format, quality });
 
       if (result.success) {
+        this.loadOptimizedImageIntoEncoder(result.buffer);
         const defaultName = `optimized.${result.format}`;
         const saved = await window.electronAPI.saveImage(result.buffer, defaultName, result.format);
         if (saved.success) {
-          this.ui.showSuccess(`Saved: ${saved.path} (${this.ui.formatBytes(result.size)}, ${result.width}×${result.height})`);
+          this.ui.showSuccess(`Saved and loaded into encoder: ${saved.path} (${this.ui.formatBytes(result.size)}, ${result.width}×${result.height})`);
         } else if (saved.error !== 'Save cancelled') {
           this.ui.showError('Optimized but failed to save: ' + saved.error);
+        } else {
+          this.ui.showSuccess(`Optimized image loaded into encoder (${this.ui.formatBytes(result.size)}, ${result.width}×${result.height})`);
         }
-        // else: user cancelled the save dialog — silent
       } else {
         this.ui.showError('Optimization failed: ' + result.error);
       }
@@ -722,6 +746,21 @@ class App {
     } finally {
       this.ui.showLoading(false);
     }
+  }
+
+  loadOptimizedImageIntoEncoder(base64Data) {
+    const inputEditor = this.ui.getMonacoEditor('input');
+    const outputEditor = this.ui.getMonacoEditor('output');
+    if (!inputEditor || !base64Data) return;
+
+    inputEditor.setValue(base64Data);
+    if (outputEditor) outputEditor.setValue('');
+    this.ui.switchTab('encoder');
+
+    const encodingSelect = document.getElementById('encodingSelect');
+    if (encodingSelect) encodingSelect.value = 'base64';
+
+    this.ui.updateStats();
   }
 
   async startServer() {
@@ -765,35 +804,59 @@ class App {
     try {
       const status = await window.electronAPI.getServerStatus();
       this.serverRunning = status.running;
-      this.updateServerUI(status.running, status.port);
+      this.updateServerUI(status.running, status.port, status.apiKey || null);
     } catch (error) {
       console.error('Failed to check server status:', error);
     }
   }
 
   updateServerUI(running, port = 3000, apiKey = null) {
+    this.serverPort = port;
     const statusEl = document.getElementById('serverStatus');
     const startBtn = document.getElementById('startServer');
     const stopBtn = document.getElementById('stopServer');
 
     if (statusEl) {
       if (running && apiKey) {
+        const baseUrl = `http://localhost:${port}`;
+        const curlExample = `curl -X POST ${baseUrl}/api/encode -H "Content-Type: application/json" -H "X-API-Key: ${apiKey}" -d "{\\"data\\":\\"hello\\",\\"encoding\\":\\"base64\\"}"`;
+        statusEl.className = 'server-status server-status-detailed';
         statusEl.innerHTML = `
-          <div class="status-badge running">Running on port ${port}</div>
+          <div class="status-badge running">Running on ${baseUrl}</div>
           <div class="api-key-box">
+            <strong class="api-key-label">Base URL:</strong>
+            <div class="api-key-row">
+              <code id="apiBaseUrlDisplay" class="api-key-code"></code>
+              <button id="copyApiBaseUrlBtn" class="btn-small">Copy</button>
+            </div>
             <strong class="api-key-label">API Key:</strong>
             <div class="api-key-row">
               <code id="apiKeyDisplay" class="api-key-code"></code>
               <button id="copyApiKeyBtn" class="btn-small">Copy</button>
             </div>
-            <small class="api-key-hint">Include this in the "X-API-Key" header</small>
+            <strong class="api-key-label">cURL example:</strong>
+            <div class="api-key-row api-key-row-wide">
+              <code id="apiCurlDisplay" class="api-key-code api-key-code-wrap"></code>
+              <button id="copyApiCurlBtn" class="btn-small">Copy</button>
+            </div>
+            <small class="api-key-hint">Use the base URL in clients. Authenticated requests must include the "X-API-Key" header.</small>
           </div>
         `;
         // Set text content safely to avoid XSS
+        document.getElementById('apiBaseUrlDisplay').textContent = baseUrl;
         document.getElementById('apiKeyDisplay').textContent = apiKey;
+        document.getElementById('apiCurlDisplay').textContent = curlExample;
+        document.getElementById('copyApiBaseUrlBtn').addEventListener('click', () => {
+          navigator.clipboard.writeText(baseUrl);
+          this.ui.showSuccess('Base URL copied');
+        });
         document.getElementById('copyApiKeyBtn').addEventListener('click', () => {
           navigator.clipboard.writeText(apiKey);
           this.ui.showSuccess('API key copied');
+        });
+        document.getElementById('copyApiCurlBtn').addEventListener('click', () => {
+          navigator.clipboard.writeText(curlExample);
+          this.ui.showSuccess('cURL example copied');
         });
       } else {
         statusEl.textContent = running ? `Running on port ${port}` : 'Not running';
@@ -811,9 +874,7 @@ class App {
     try {
       const result = await window.electronAPI.rotateAPIKey();
       if (result.success) {
-        // Update the displayed key in-place
-        const display = document.getElementById('apiKeyDisplay');
-        if (display) display.textContent = result.apiKey;
+        this.updateServerUI(true, this.serverPort, result.apiKey);
         this.ui.showSuccess('API key rotated');
       } else {
         this.ui.showError(result.error || 'Failed to rotate key');
@@ -950,6 +1011,7 @@ function initPasswordHashHandlers() {
   }
   
   const hashPasswordBtn = document.getElementById('hashPasswordBtn');
+  const clearPasswordHashBtn = document.getElementById('clearPasswordHashBtn');
   if (hashPasswordBtn) {
     hashPasswordBtn.addEventListener('click', async () => {
       const password = document.getElementById('passwordInput').value;
@@ -985,7 +1047,11 @@ function initPasswordHashHandlers() {
               <button id="copyHashBtn" class="btn-small">Copy</button>
             </div>`;
           // Set hash value safely to avoid XSS with special characters
-          document.getElementById('hashResultText').value = result.hash;
+          const hashResultText = document.getElementById('hashResultText');
+          hashResultText.value = result.hash;
+          hashResultText.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          hashResultText.focus();
+          hashResultText.select();
           document.getElementById('copyHashBtn').addEventListener('click', () => {
             navigator.clipboard.writeText(result.hash);
             window.ui.showSuccess('Copied');
@@ -998,6 +1064,20 @@ function initPasswordHashHandlers() {
       } finally {
         hashPasswordBtn.disabled = false;
       }
+    });
+  }
+
+  if (clearPasswordHashBtn) {
+    clearPasswordHashBtn.addEventListener('click', () => {
+      document.getElementById('passwordInput').value = '';
+      document.getElementById('passwordAlgorithm').value = 'pbkdf2';
+      document.getElementById('bcryptRounds').value = '10';
+      document.getElementById('argon2Memory').value = '65536';
+      document.getElementById('argon2Time').value = '3';
+      document.getElementById('pbkdf2Iterations').value = '100000';
+      document.getElementById('passwordHashResult').innerHTML = '';
+      passwordAlgorithm?.dispatchEvent(new Event('change'));
+      document.getElementById('passwordInput')?.focus();
     });
   }
 

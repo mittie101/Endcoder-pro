@@ -196,7 +196,8 @@ function register() {
 
     ipcMain.handle('get-server-status', async () => ({
         running: serverInstance !== null,
-        port: serverPort
+        port: serverPort,
+        apiKey: apiApp?.locals?.apiKey || null
     }));
 
     ipcMain.handle('rotate-api-key', async () => {

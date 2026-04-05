@@ -5,7 +5,7 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "prebuild": "node esbuild.config.js && npm install && electron-rebuild -f -w bcrypt,argon2,sharp",
+    "prebuild": "node esbuild.config.js && electron-rebuild -f -w bcrypt,argon2,sharp",
     "build": "electron-builder",
     "build:win": "electron-builder --win",
     "build:mac": "electron-builder --mac",
@@ -52,6 +52,9 @@
     "jsonwebtoken": "^9.0.2",
     "qrious": "^4.0.2",
     "sharp": "^0.34.5"
+  },
+  "optionalDependencies": {
+    "@img/sharp-win32-x64": "0.34.5"
   },
   "build": {
     "appId": "com.endcoderpro.app",
